@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: chatbot-espe-backend
+    env: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: chroma-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatbot-db
+          property: connectionString
+      - key: CHROMA_PATH
+        value: /var/data/institucional_vector_db
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRES_MINUTES
+        value: "480"
+      - key: CARRERA_NOMBRE
+        value: ITIV (Tecnologías de la Información modalidad Virtual)
+      - key: UNIVERSIDAD_NOMBRE
+        value: Universidad de las Fuerzas Armadas (ESPE)
+      - key: DIRECTOR_NOMBRE
+        value: Director de Carrera
+      - key: DIRECTOR_CORREO
+        value: carrera_itiv@espe.edu.ec
+
+databases:
+  - name: chatbot-db
+    databaseName: chatbot
+    user: chatbot
