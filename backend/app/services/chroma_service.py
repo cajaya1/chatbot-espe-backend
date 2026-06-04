@@ -1,3 +1,10 @@
+import os
+
+# Parche estricto para forzar a Hugging Face a trabajar offline y quitar Warnings
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 import re
 import uuid
 from pathlib import Path
@@ -5,6 +12,7 @@ from typing import List, Optional
 from functools import lru_cache
 
 import chromadb
+from chromadb.utils import embedding_functions
 
 _DB_PATH = Path(__file__).resolve().parents[2] / "institucional_vector_db"
 _DB_PATH.mkdir(parents=True, exist_ok=True)
@@ -84,15 +92,6 @@ def _chunk_text(text: str, max_chars: int = 800) -> List[str]:
 
 
 def guardar_texto(texto: str, id_doc: str) -> List[str]:
-    """Guarda el texto dividido en la colección `documentos` en ChromaDB.
-
-    Args:
-        texto: texto completo del documento.
-        id_doc: identificador externo del documento.
-
-    Returns:
-        Lista de ids creadas para los fragmentos.
-    """
     if not texto or not texto.strip():
         raise ValueError("Texto vacío")
 
@@ -112,7 +111,6 @@ def guardar_texto(texto: str, id_doc: str) -> List[str]:
         metadatas.append({"id_doc": id_doc, "chunk_index": i})
 
     embeddings = _embed_texts(docs)
-
     collection.add(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
 
     return ids
@@ -133,26 +131,13 @@ def eliminar_contexto_proceso(
 
 
 def buscar_contexto(pregunta: str, n_results: int = 3) -> List[str]:
-    """Consulta la colección `documentos` y devuelve los textos más relevantes.
-
-    Args:
-        pregunta: texto de la consulta.
-        n_results: número de fragmentos a retornar.
-
-    Returns:
-        Lista de fragmentos (strings) más relevantes.
-    """
     if not pregunta or not pregunta.strip():
         return []
 
     collection = _get_collection("documentos")
-
     q_emb = _embed_texts([pregunta])[0]
 
-    # query por embeddings
     res = collection.query(query_embeddings=[q_emb], n_results=n_results, include=["documents", "metadatas"])
-
-    # resultado: cada key es lista por consulta; tomamos el primer elemento
     documents = res.get("documents", [[]])[0]
 
     return documents
@@ -202,10 +187,6 @@ def upsert_contexto_proceso(
     flujo_pasos: Optional[List[str]] = None,
     collection_name: str = "procesos_academicos",
 ) -> List[str]:
-    """Indexa el contexto legal asociado a un proceso academico.
-
-    El codigo del proceso se guarda como metadato para permitir filtros directos.
-    """
     if not contexto_legal or not contexto_legal.strip():
         raise ValueError("Texto vacío")
     if not codigo_proceso or not codigo_proceso.strip():
@@ -217,7 +198,6 @@ def upsert_contexto_proceso(
 
     collection = _get_collection(collection_name)
 
-    # Limpiar registros previos del mismo proceso para mantener solo lo vigente.
     try:
         collection.delete(where={"fuente": codigo_proceso})
     except Exception:
@@ -247,3 +227,43 @@ def upsert_contexto_proceso(
     collection.add(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
 
     return ids
+
+
+def sincronizar_proceso_chromadb(codigo_proceso: str, titulo: str, contexto_legal: str, flujo_pasos: list):
+    """
+    Toma los datos de Postgres, los empaqueta y los vectoriza en ChromaDB.
+    """
+    collection = _get_collection("procesos_academicos")
+    
+    pasos_str = "\n".join(flujo_pasos)
+    texto_para_ia = (
+        f"PROCESO INSTITUCIONAL: {titulo}\n\n"
+        f"PASOS OFICIALES DEL TRÁMITE:\n{pasos_str}\n\n"
+        f"REGLAMENTO APLICABLE:\n{contexto_legal}"
+    )
+
+    # Fragmentación básica por párrafos
+    fragmentos = [parrafo.strip() for parrafo in texto_para_ia.split('\n\n') if parrafo.strip()]
+    
+    documentos = []
+    metadatos = []
+    ids = []
+    
+    for i, fragmento in enumerate(fragmentos):
+        documentos.append(fragmento)
+        metadatos.append({"fuente": codigo_proceso, "titulo": titulo})
+        ids.append(f"{codigo_proceso}_chunk_{i}")
+        
+    # Generamos los embeddings usando la función local antes de insertar
+    embeddings = _embed_texts(documentos)
+        
+    try:
+        collection.upsert(
+            documents=documentos,
+            metadatas=metadatos,
+            ids=ids,
+            embeddings=embeddings
+        )
+        print(f"Vectorizado en ChromaDB: {codigo_proceso}")
+    except Exception as e:
+        print(f"Error al vectorizar en ChromaDB el proceso {codigo_proceso}: {e}")
