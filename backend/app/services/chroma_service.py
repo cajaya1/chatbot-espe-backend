@@ -1,0 +1,249 @@
+import re
+import uuid
+from pathlib import Path
+from typing import List, Optional
+from functools import lru_cache
+
+import chromadb
+
+_DB_PATH = Path(__file__).resolve().parents[2] / "institucional_vector_db"
+_DB_PATH.mkdir(parents=True, exist_ok=True)
+CLIENT = chromadb.PersistentClient(path=str(_DB_PATH))
+
+def _get_collection(name: str = "documentos"):
+    try:
+        return CLIENT.get_collection(name)
+    except Exception:
+        return CLIENT.create_collection(name)
+
+
+def ensure_collection(name: str = "documentos") -> None:
+    _get_collection(name)
+
+
+@lru_cache(maxsize=1)
+def _get_embedder():
+    """Intenta cargar un modelo semántico y retorna None si no está disponible."""
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        return SentenceTransformer("all-MiniLM-L6-v2")
+    except Exception:
+        return None
+
+
+def _embed_texts(texts: List[str]) -> List[List[float]]:
+    """Genera embeddings semánticos con fallback determinístico."""
+    model = _get_embedder()
+    if model is not None:
+        vectors = model.encode(texts)
+        return [v.tolist() for v in vectors]
+
+    # Fallback liviano si sentence-transformers no está instalado.
+    import hashlib
+    import re
+
+    dims = 128
+    embeddings = []
+    for text in texts:
+        v = [0.0] * dims
+        for token in re.findall(r"\w+", text.lower()):
+            h = int(hashlib.md5(token.encode("utf-8")).hexdigest()[:8], 16)
+            v[h % dims] += 1.0
+        norm = sum(x * x for x in v) ** 0.5
+        if norm > 0:
+            v = [x / norm for x in v]
+        embeddings.append(v)
+
+    return embeddings
+
+
+def _chunk_text(text: str, max_chars: int = 800) -> List[str]:
+    # dividir por párrafos (dos saltos de línea) y luego por longitud
+    parts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    chunks: List[str] = []
+    for p in parts:
+        if len(p) <= max_chars:
+            chunks.append(p)
+        else:
+            # dividir sin cortar palabras
+            words = p.split()
+            cur = []
+            cur_len = 0
+            for w in words:
+                if cur_len + len(w) + 1 > max_chars and cur:
+                    chunks.append(" ".join(cur))
+                    cur = [w]
+                    cur_len = len(w)
+                else:
+                    cur.append(w)
+                    cur_len += len(w) + 1
+            if cur:
+                chunks.append(" ".join(cur))
+    return chunks
+
+
+def guardar_texto(texto: str, id_doc: str) -> List[str]:
+    """Guarda el texto dividido en la colección `documentos` en ChromaDB.
+
+    Args:
+        texto: texto completo del documento.
+        id_doc: identificador externo del documento.
+
+    Returns:
+        Lista de ids creadas para los fragmentos.
+    """
+    if not texto or not texto.strip():
+        raise ValueError("Texto vacío")
+
+    collection = _get_collection("documentos")
+
+    chunks = _chunk_text(texto)
+    if not chunks:
+        raise ValueError("No se generaron fragmentos del texto")
+
+    ids = []
+    docs = []
+    metadatas = []
+    for i, chunk in enumerate(chunks):
+        chunk_id = f"{id_doc}-{i}-{uuid.uuid4().hex[:8]}"
+        ids.append(chunk_id)
+        docs.append(chunk)
+        metadatas.append({"id_doc": id_doc, "chunk_index": i})
+
+    embeddings = _embed_texts(docs)
+
+    collection.add(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
+
+    return ids
+
+
+def eliminar_contexto_proceso(
+    codigo_proceso: str,
+    collection_name: str = "procesos_academicos",
+) -> None:
+    """Elimina todos los fragmentos asociados a un codigo de proceso."""
+    if not codigo_proceso or not codigo_proceso.strip():
+        return
+    collection = _get_collection(collection_name)
+    try:
+        collection.delete(where={"fuente": codigo_proceso})
+    except Exception:
+        pass
+
+
+def buscar_contexto(pregunta: str, n_results: int = 3) -> List[str]:
+    """Consulta la colección `documentos` y devuelve los textos más relevantes.
+
+    Args:
+        pregunta: texto de la consulta.
+        n_results: número de fragmentos a retornar.
+
+    Returns:
+        Lista de fragmentos (strings) más relevantes.
+    """
+    if not pregunta or not pregunta.strip():
+        return []
+
+    collection = _get_collection("documentos")
+
+    q_emb = _embed_texts([pregunta])[0]
+
+    # query por embeddings
+    res = collection.query(query_embeddings=[q_emb], n_results=n_results, include=["documents", "metadatas"])
+
+    # resultado: cada key es lista por consulta; tomamos el primer elemento
+    documents = res.get("documents", [[]])[0]
+
+    return documents
+
+
+def buscar_contexto_proceso(
+    pregunta: str,
+    codigo_proceso: str,
+    n_results: int = 3,
+    collection_name: str = "procesos_academicos",
+) -> dict:
+    """Consulta la colección de procesos con filtro estricto por codigo_proceso."""
+    if not pregunta or not pregunta.strip():
+        return {}
+    if not codigo_proceso or not codigo_proceso.strip():
+        return {}
+
+    collection = _get_collection(collection_name)
+    q_emb = _embed_texts([pregunta])[0]
+
+    return collection.query(
+        query_embeddings=[q_emb],
+        n_results=n_results,
+        include=["documents", "metadatas", "distances"],
+        where={"fuente": codigo_proceso},
+    )
+
+
+def _build_texto_proceso(titulo: str, flujo_pasos: List[str], contexto_legal: str) -> str:
+    partes = []
+    if titulo:
+        partes.append(f"PROCESO INSTITUCIONAL: {titulo}")
+    if flujo_pasos:
+        pasos_str = "\n".join([p for p in flujo_pasos if str(p).strip()])
+        if pasos_str:
+            partes.append(f"PASOS OFICIALES DEL TRAMITE:\n{pasos_str}")
+    if contexto_legal:
+        partes.append(f"REGLAMENTO APLICABLE:\n{contexto_legal}")
+
+    return "\n\n".join(partes).strip()
+
+
+def upsert_contexto_proceso(
+    contexto_legal: str,
+    codigo_proceso: str,
+    titulo: Optional[str] = None,
+    flujo_pasos: Optional[List[str]] = None,
+    collection_name: str = "procesos_academicos",
+) -> List[str]:
+    """Indexa el contexto legal asociado a un proceso academico.
+
+    El codigo del proceso se guarda como metadato para permitir filtros directos.
+    """
+    if not contexto_legal or not contexto_legal.strip():
+        raise ValueError("Texto vacío")
+    if not codigo_proceso or not codigo_proceso.strip():
+        raise ValueError("Código de proceso vacío")
+
+    texto = _build_texto_proceso(titulo or "", flujo_pasos or [], contexto_legal)
+    if not texto:
+        raise ValueError("Texto vacío")
+
+    collection = _get_collection(collection_name)
+
+    # Limpiar registros previos del mismo proceso para mantener solo lo vigente.
+    try:
+        collection.delete(where={"fuente": codigo_proceso})
+    except Exception:
+        pass
+
+    chunks = _chunk_text(texto)
+    if not chunks:
+        raise ValueError("No se generaron fragmentos del texto")
+
+    ids = []
+    docs = []
+    metadatas = []
+    for i, chunk in enumerate(chunks):
+        chunk_id = f"{codigo_proceso}-{i}-{uuid.uuid4().hex[:8]}"
+        ids.append(chunk_id)
+        docs.append(chunk)
+        metadatas.append(
+            {
+                "fuente": codigo_proceso,
+                "codigo_proceso": codigo_proceso,
+                "titulo": titulo or "",
+                "chunk_index": i,
+            }
+        )
+
+    embeddings = _embed_texts(docs)
+    collection.add(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
+
+    return ids

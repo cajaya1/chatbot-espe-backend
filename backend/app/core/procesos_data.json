@@ -1,0 +1,26 @@
+[
+    {
+        "titulo": "Retiro Voluntario",
+        "codigo_proceso": "RETIRO_VOLUNTARIO",
+        "activo": true,
+        "flujo_pasos": [
+            "Llenar formulario de solicitud",
+            "Enviar al correo del director",
+            "Esperar resolución en 5 días hábiles"
+        ],
+        "contexto_legal": "Según el Reglamento de Régimen Académico Art. 45, el estudiante podrá solicitar el retiro voluntario hasta la semana 12 del periodo académico. Para el periodo 2026-1, la fecha límite es el 15 de julio de 2026.",
+        "ruta_anexo": "/formatos/Solicitud_Retiro_Voluntario.DOCX"
+    },
+    {
+        "titulo": "Homologación de asignaturas",
+        "codigo_proceso": "HOMOLOGACION",
+        "activo": true,
+        "flujo_pasos": [
+            "Presentar récord académico sellado",
+            "Syllabus de las materias originales",
+            "Solicitud dirigida al consejo de facultad"
+        ],
+        "contexto_legal": "El proceso de homologación se realiza antes del inicio de clases. Para el periodo 2026-1, las fechas de recepción son del 1 al 20 de mayo de 2026.",
+        "ruta_anexo": "/formatos/Solicitud_Reconocimento_Homologacion.docx"
+    }
+]
