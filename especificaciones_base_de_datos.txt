@@ -1,0 +1,47 @@
+# Especificaciones Sugeridas para la Base de Datos Relacional
+
+Este documento detalla la estructura recomendada para las tablas de Usuarios y Documentos. Se sugiere usar SQLite para desarrollo o PostgreSQL para producción.
+
+---
+
+## 1. TABLA: usuarios (Users)
+Almacena la información de acceso de los administradores y personal de la carrera.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | Integer (PK) | Identificador único autoincrementable. |
+| username | String (Unique) | Nombre de usuario para el login. |
+| email | String (Unique) | Correo electrónico institucional. |
+| password_hash | String | Contraseña encriptada (usar bcrypt). |
+| nombre_completo | String | Nombre y apellido del usuario. |
+| rol | String | 'admin' (total) o 'editor' (solo gestión de docs). |
+| ultimo_login | DateTime | Registro de la última vez que ingresó. |
+| activo | Boolean | Estado de la cuenta (True/False). |
+
+---
+
+## 2. TABLA: documentos (Documents)
+Almacena el registro de los archivos PDF subidos y su metadata para el chatbot.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | Integer (PK) | Identificador único. |
+| titulo | String | Título descriptivo del documento. |
+| nombre_archivo | String | Nombre original del archivo (ej: "Reglamento.pdf"). |
+| descripcion | Text | Breve resumen o notas sobre el contenido. |
+| categoria | String | Categoría del trámite (Homologación, Reingreso, etc.). |
+| ruta_fisica | String | Ubicación del archivo en la carpeta 'backend/files/'. |
+| id_vectorial | String | ID generado para ChromaDB (relación con la DB de vectores). |
+| fecha_subida | DateTime | Timestamp de cuando se cargó el archivo. |
+| usuario_id | Integer (FK) | ID del usuario que subió el documento. |
+| estado | String | 'activo', 'archivado' o 'pendiente'. |
+
+---
+
+## 3. RELACIONES (Foreign Keys)
+- `documentos.usuario_id` -> Referencia a `usuarios.id` (quién subió el archivo).
+
+## 4. CONSIDERACIONES TÉCNICAS (Backend)
+- **Librería Sugerida:** SQLAlchemy con Alembic para migraciones.
+- **Seguridad:** No guardar contraseñas en texto plano. Usar `passlib` con `bcrypt`.
+- **Integración:** Cada vez que se suba un documento en `/documents/upload`, se debe crear primero el registro en esta DB y luego obtener el `id_vectorial` para guardar en ChromaDB.
