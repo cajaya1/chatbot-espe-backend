@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import List, Optional
 from functools import lru_cache
 
+from mistralai.client import Mistral
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -41,29 +42,27 @@ def _get_embedder():
 
 
 def _embed_texts(texts: List[str]) -> List[List[float]]:
-    """Genera embeddings semánticos con fallback determinístico."""
-    model = _get_embedder()
-    if model is not None:
-        vectors = model.encode(texts)
-        return [v.tolist() for v in vectors]
-
-    # Fallback liviano si sentence-transformers no está instalado.
-    import hashlib
-    import re
-
-    dims = 128
-    embeddings = []
-    for text in texts:
-        v = [0.0] * dims
-        for token in re.findall(r"\w+", text.lower()):
-            h = int(hashlib.md5(token.encode("utf-8")).hexdigest()[:8], 16)
-            v[h % dims] += 1.0
-        norm = sum(x * x for x in v) ** 0.5
-        if norm > 0:
-            v = [x / norm for x in v]
-        embeddings.append(v)
-
-    return embeddings
+    """Genera embeddings usando la API oficial de Mistral (Ligero y potente para la nube)."""
+    api_key = os.getenv("MISTRAL_API_KEY", "").strip()
+    
+    if api_key:
+        client = Mistral(api_key=api_key)
+        # Mistral requiere que los textos no estén vacíos
+        textos_seguros = [t if t.strip() else "vacío" for t in texts]
+        
+        response = client.embeddings.create(
+            model="mistral-embed",
+            inputs=textos_seguros
+        )
+        return [obj.embedding for obj in response.data]
+    else:
+        # Fallback local (Solo se ejecutará en tu PC si quitas la variable de entorno)
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+            return [v.tolist() for v in model.encode(texts)]
+        except Exception:
+            raise RuntimeError("Falta la API de Mistral o la librería local para generar embeddings.")
 
 
 def _chunk_text(text: str, max_chars: int = 800) -> List[str]:
@@ -254,7 +253,7 @@ def sincronizar_proceso_chromadb(codigo_proceso: str, titulo: str, contexto_lega
         metadatos.append({"fuente": codigo_proceso, "titulo": titulo})
         ids.append(f"{codigo_proceso}_chunk_{i}")
         
-    # Generamos los embeddings usando la función local antes de insertar
+    # Generamos los embeddings usando la función local (API de Mistral) antes de insertar
     embeddings = _embed_texts(documentos)
         
     try:

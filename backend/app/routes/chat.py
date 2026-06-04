@@ -180,9 +180,10 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
     results = buscar_contexto_proceso(pregunta, proceso.codigo_proceso, n_results=3)
     fragmentos, fuentes, mejor_distancia = _extract_results(results)
 
-    if not fragmentos or mejor_distancia > 0.88:
+    # Quitamos la restricción de mejor_distancia. Solo detenemos si literalmente no hay fragmentos en la BD.
+    if not fragmentos:
         return ChatResponse(
-            respuesta=f"Entiendo que preguntas sobre *{proceso.titulo}*, pero no encuentro ese detalle específico en mis registros. Comunícate con el Director de Carrera al correo {DIRECTOR_CORREO} para asistirte mejor.",
+            respuesta=f"Entiendo que preguntas sobre *{proceso.titulo}*, pero mi base de conocimientos está vacía para este trámite. Comunícate con el Director de Carrera al correo {DIRECTOR_CORREO} para asistirte mejor.",
             fuentes=[],
             fragmentos_debug=fragmentos,
             codigo_proceso=proceso.codigo_proceso,

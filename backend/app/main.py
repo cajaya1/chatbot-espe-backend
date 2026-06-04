@@ -4,10 +4,11 @@ try:
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 except ImportError:
     pass
+
 import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-
+import asyncio
 # Cargar variables de entorno antes de importar otros módulos de la app
 load_dotenv()
 
@@ -24,7 +25,7 @@ from app.routes.chat import router as chat_router
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.procesos import router as procesos_router
-from app.services.chroma_service import ensure_collection, sincronizar_proceso_chromadb
+from app.services.chroma_service import ensure_collection, sincronizar_proceso_chromadb, CLIENT
 
 
 @asynccontextmanager
@@ -32,6 +33,18 @@ async def lifespan(app: FastAPI):
     # --- LÓGICA DE ENCENDIDO (STARTUP) ---
     print("Iniciando servidor: Configurando base de datos y reconstruyendo ChromaDB...")
     
+    # 1. BORRAR LA COLECCIÓN VIEJA PARA ARREGLAR LAS DIMENSIONES (384 vs 1024)
+    try:
+        CLIENT.delete_collection("procesos_academicos")
+        print("Colección 'procesos_academicos' reseteada para recibir vectores de Mistral (1024d).")
+    except Exception:
+        pass
+        
+    try:
+        CLIENT.delete_collection("documentos")
+    except Exception:
+        pass
+
     Base.metadata.create_all(bind=engine)
     ensure_collection()
     ensure_collection("procesos_academicos")
@@ -57,6 +70,9 @@ async def lifespan(app: FastAPI):
                     contexto_legal=proceso.contexto_legal,
                     flujo_pasos=proceso.flujo_pasos
                 )
+                # Pausa de 2 segundos para respetar el límite de la API gratuita de Mistral
+                await asyncio.sleep(2)
+                
             print(f"Se vectorizaron {len(procesos_activos)} procesos exitosamente para el RAG.")
         else:
             print("La base de datos de Postgres está vacía. No hay procesos para vectorizar.")
@@ -86,8 +102,7 @@ app.add_middleware(
         "http://127.0.0.1",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        # Aquí puedes agregar luego la URL de Vercel, por ejemplo:
-        # "https://tu-frontend-espe.vercel.app"
+        "https://chatbot-espe-backend.vercel.app/" 
     ],
     allow_credentials=True,
     allow_methods=["*"],
