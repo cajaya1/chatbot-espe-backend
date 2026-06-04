@@ -131,4 +131,3 @@ dmypy.json
 # Vector DB
 institucional_vector_db/
 backend/institucional_vector_db/
-node_modules/
