@@ -20,12 +20,15 @@ from app.core.seed import seed_procesos, seed_users
 from app.models import user as user_model  # noqa: F401
 from app.models import document as document_model  # noqa: F401
 from app.models import proceso_academico as proceso_academico_model  # noqa: F401
+from app.models import calendario_academico as calendario_academico_model  # noqa: F401
 from app.routes.documents import router as documents_router
 from app.routes.chat import router as chat_router
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.procesos import router as procesos_router
+from app.routes.calendarios import router as calendarios_router
 from app.services.chroma_service import ensure_collection, sincronizar_proceso_chromadb, CLIENT
+from app.services.chroma_service import sincronizar_calendario_chromadb
 
 
 @asynccontextmanager
@@ -39,6 +42,12 @@ async def lifespan(app: FastAPI):
         print("Colección 'procesos_academicos' reseteada para recibir vectores de Mistral (1024d).")
     except Exception:
         pass
+
+    try:
+        CLIENT.delete_collection("calendario_academico")
+        print("Colección 'calendario_academico' reseteada para recibir vectores de Mistral (1024d).")
+    except Exception:
+        pass
         
     try:
         CLIENT.delete_collection("documentos")
@@ -48,6 +57,7 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_collection()
     ensure_collection("procesos_academicos")
+    ensure_collection("calendario_academico")
     
     db = SessionLocal()
     try:
@@ -76,6 +86,16 @@ async def lifespan(app: FastAPI):
             print(f"Se vectorizaron {len(procesos_activos)} procesos exitosamente para el RAG.")
         else:
             print("La base de datos de Postgres está vacía. No hay procesos para vectorizar.")
+
+        periodos_academicos = db.query(calendario_academico_model.PeriodoAcademico).all()
+        if periodos_academicos:
+            for periodo in periodos_academicos:
+                sincronizar_calendario_chromadb(periodo.id, db)
+                await asyncio.sleep(1)
+
+            print(f"Se vectorizaron {len(periodos_academicos)} periodos académicos exitosamente para el RAG.")
+        else:
+            print("La base de datos de Postgres está vacía. No hay periodos académicos para vectorizar.")
 
     except Exception as e:
         print(f"Error crítico durante el arranque o reconstrucción de ChromaDB: {e}")
@@ -115,6 +135,7 @@ app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(procesos_router)
+app.include_router(calendarios_router)
 
 
 @app.get("/")

@@ -8,6 +8,8 @@ import Processes from '../pages/Processes'
 import Formats from '../pages/Formats'
 import Information from '../pages/Information'
 import AdminDocuments from '../pages/AdminDocuments'
+import AdminAcademicCalendarHistory from '../pages/AdminAcademicCalendarHistory'
+import AdminAcademicCalendarForm from '../pages/AdminAcademicCalendarForm'
 import AdminDashboard from '../pages/AdminDashboard'
 import AdminUsers from '../pages/AdminUsers'
 import Login from '../pages/Login'
@@ -53,6 +55,10 @@ function AppRoutes() {
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/documents" element={<AdminDocuments />} />
+          <Route path="/admin/calendar" element={<AdminAcademicCalendarHistory />} />
+          <Route path="/admin/calendar/new" element={<AdminAcademicCalendarForm />} />
+          <Route path="/admin/calendar/:periodId/edit" element={<AdminAcademicCalendarForm />} />
+          <Route path="/admin/calendar/:periodId" element={<AdminAcademicCalendarForm />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/profile" element={<Profile />} />
         </Route>

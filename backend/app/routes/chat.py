@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import os
 import re
 from typing import List, Tuple
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import DIRECTOR_CORREO
 from app.core.database import get_db
 from app.models.proceso_academico import ProcesoAcademico
-from app.services.chroma_service import buscar_contexto_proceso
+from app.services.chroma_service import buscar_contexto_calendario, buscar_contexto_proceso
 
 router = APIRouter(tags=["chat"])
 
@@ -53,11 +54,16 @@ def _construir_fuente_formateada(fragmentos: List[str]) -> str:
 
 
 def _build_system_prompt() -> str:
+    fecha_actual = datetime.now().strftime("%Y-%m-%d")
     return (
         f"Eres el Asistente Académico Inteligente oficial de la carrera de Tecnologías de la Información en Linea (ITIV) de la ESPE.\n"
         f"Tu tarea es responder con empatía, claridad y precisión basándote EXCLUSIVAMENTE en el contexto institucional provisto.\n\n"
-        f"INSTRUCCIONES ESTRICTAS:\n"
-        f"1. BASADO EN EVIDENCIA: Responde usando ÚNICAMENTE la información contenida dentro de las reglas recuperadas.\n"
+        f"Hoy es {fecha_actual}. Si el usuario pregunta por fechas o plazos de un trámite, DEBES comparar las fechas del calendario académico provisto con la fecha de hoy e indicarle si está a tiempo, cuántos días le quedan o si el plazo ya venció.\n\n"
+        f"INSTRUCCIONES ESTRICTAS DE FORMATO Y ESTILO:\n"
+        f"- BAJO NINGUNA CIRCUNSTANCIA utilices emojis en tus respuestas.\n"
+        f"- NO utilices sintaxis Markdown como asteriscos (**) para negritas ni hashtags (#). Escribe en texto plano tradicional.\n\n"
+        f"INSTRUCCIONES DE OPERACIÓN:\n"
+        f"1. BASADO EN EVIDENCIA: Para preguntas sobre trámites, responde usando ÚNICAMENTE la información contenida dentro de las reglas recuperadas.\n"
         f"2. CITA JURÍDICA PURA: Está ESTRICTAMENTE PROHIBIDO mencionar nombres de archivos, extensiones '.txt' o etiquetas de formato. Si debes citar la fuente, menciona ÚNICAMENTE el artículo (por ejemplo: 'Según el Artículo 195 del Reglamento Interno...').\n"
         f"3. ANEXOS: Si te preguntan por formatos o anexos, limítate a decir amablemente que el link de descarga se encuentra adjunto al final del mensaje en la sección de fuentes.\n"
         f"4. PRECISIÓN DE PLAZOS: Si un documento menciona 'dentro de los plazos establecidos' pero no especifica los días, indica que debe confirmar el plazo exacto directamente con el Director de Carrera.\n"
@@ -94,8 +100,6 @@ def _invocar_llm(system_prompt: str, user_content: str) -> str:
     api_key = os.getenv("MISTRAL_API_KEY", "").strip()
     
     if api_key:
-        # --- MODO NUBE (PRODUCCIÓN) ---
-        print("☁️ Usando Mistral API (Cloud)")
         client = Mistral(api_key=api_key)
         response = client.chat.complete(
             model="mistral-small-latest",
@@ -107,8 +111,6 @@ def _invocar_llm(system_prompt: str, user_content: str) -> str:
         )
         return response.choices[0].message.content.strip()
     else:
-        # --- MODO LOCAL (DESARROLLO) ---
-        print("💻 Usando Ollama (Local)")
         response = ollama.chat(
             model="mistral",
             messages=[
@@ -128,7 +130,38 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
 
-    # --- PASO 1: DETERMINAR EL PROCESO (Seleccionado o Descubrimiento) ---
+    # --- INTERCEPTOR DE SALUDOS Y CORTESÍA ---
+    pregunta_limpia = re.sub(r'[^\w\s]', '', pregunta.lower()).strip()
+    saludos = {"hola", "buenas", "saludos", "buenos dias", "buenas tardes", "buenas noches", "holaa", "hey"}
+    despedidas = {"gracias", "muchas gracias", "te agradezco", "ok", "entendido", "vale", "perfecto", "listo"}
+    
+    if pregunta_limpia in saludos:
+        # Consultamos a la BD los procesos reales disponibles
+        procesos_bd = db.query(ProcesoAcademico).filter(ProcesoAcademico.es_actual.is_(True)).all()
+        lista_procesos = "\n".join([f"- {p.titulo}" for p in procesos_bd])
+        
+        respuesta_saludo = (
+            "Hola, soy tu Asistente Académico Inteligente de la carrera ITIV de la ESPE. "
+            "Actualmente puedo ayudarte con información detallada sobre los siguientes procesos:\n\n"
+            f"{lista_procesos}\n\n"
+            "¿En cuál de ellos necesitas ayuda?"
+        )
+        
+        return ChatResponse(
+            respuesta=respuesta_saludo,
+            fuentes=[],
+            fragmentos_debug=[],
+            sugerir_procesos=False # No enviamos sugerencias web para no duplicar el texto
+        )
+        
+    if pregunta_limpia in despedidas:
+        return ChatResponse(
+            respuesta="De nada. Ha sido un placer ayudarte. Si tienes alguna otra duda con tus trámites, estaré aquí para asistirte.",
+            fuentes=[],
+            fragmentos_debug=[]
+        )
+
+    # --- PASO 1: DETERMINAR EL PROCESO ---
     proceso = None
     if codigo_seleccionado:
         proceso = (
@@ -140,9 +173,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
             .first()
         )
     
-    # Si no hay código o no se encontró el seleccionado, buscamos en TODO el vector store
     if not proceso:
-        # Buscamos sin filtro de fuente para descubrir a qué trámite se refiere
         from app.services.chroma_service import _get_collection, _embed_texts
         collection = _get_collection("procesos_academicos")
         q_emb = _embed_texts([pregunta])[0]
@@ -156,7 +187,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
         metadatas = (discovery_results.get("metadatas") or [[]])[0]
         distances = (discovery_results.get("distances") or [[]])[0]
         
-        if metadatas and distances[0] < 0.85: # Umbral de confianza
+        if metadatas and distances[0] < 0.75: 
             codigo_descubierto = metadatas[0].get("fuente")
             proceso = (
                 db.query(ProcesoAcademico)
@@ -167,23 +198,29 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
                 .first()
             )
 
-    # Si después de todo no tenemos un proceso claro
+    # --- CONTROL ESTRICTO: PROCESOS DESCONOCIDOS ---
     if not proceso:
         return ChatResponse(
-            respuesta=f"No estoy seguro de a qué trámite te refieres. ¿Podrías ser más específico o seleccionar uno de la lista? Para consultas directas, comunícate con el Director de Carrera: {DIRECTOR_CORREO}",
-            fuentes=[],
+            respuesta=f"No tengo información sobre ese proceso o consulta en mi base de datos, por lo que no puedo ayudarte con ello. Por favor, comunícate directamente con el Director de Carrera al correo: {DIRECTOR_CORREO}",
+            fuentes=[], # Sin fuentes ni formatos
             fragmentos_debug=[],
-            sugerir_procesos=True
+            sugerir_procesos=False
         )
 
     # --- PASO 2: BUSQUEDA DE CONTEXTO ESPECIFICO ---
     results = buscar_contexto_proceso(pregunta, proceso.codigo_proceso, n_results=3)
     fragmentos, fuentes, mejor_distancia = _extract_results(results)
+    resultados_calendario = buscar_contexto_calendario(pregunta, n_results=3)
+    fragmentos_calendario = [
+        str(fragmento).strip()
+        for fragmento in (resultados_calendario.get("documents") or [[]])[0]
+        if str(fragmento).strip()
+    ]
 
-    # Quitamos la restricción de mejor_distancia. Solo detenemos si literalmente no hay fragmentos en la BD.
-    if not fragmentos:
+    # Si se conoce el proceso pero no se encuentra la respuesta específica a la pregunta
+    if not fragmentos and not fragmentos_calendario:
         return ChatResponse(
-            respuesta=f"Entiendo que preguntas sobre *{proceso.titulo}*, pero mi base de conocimientos está vacía para este trámite. Comunícate con el Director de Carrera al correo {DIRECTOR_CORREO} para asistirte mejor.",
+            respuesta=f"Entiendo que preguntas sobre {proceso.titulo}, pero no encuentro ese detalle específico en mis registros normativos. Por favor, comunícate con el Director de Carrera al correo {DIRECTOR_CORREO} para asistirte mejor.",
             fuentes=[],
             fragmentos_debug=fragmentos,
             codigo_proceso=proceso.codigo_proceso,
@@ -195,12 +232,18 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
         f"--- REGLA DE LA UNIVERSIDAD ---\n{frag}\n----------------------------------"
         for frag in fragmentos
     ])
+
+    if fragmentos_calendario:
+        contexto_calendario = "\n\n".join([
+            f"--- CALENDARIO ACADÉMICO ---\n{frag}\n----------------------------------"
+            for frag in fragmentos_calendario
+        ])
+        contexto_plano = f"{contexto_plano}\n\n{contexto_calendario}" if contexto_plano else contexto_calendario
     
-    # Si el proceso fue descubierto automáticamente, le damos una pista al LLM para que sea amable
     intro_descubrimiento = f"(El usuario está preguntando sobre el proceso: {proceso.titulo}. Responde asumiendo este contexto)."
     user_content = f"{intro_descubrimiento}\n\nCONTEXTO INSTITUCIONAL:\n{contexto_plano}\n\nPREGUNTA DEL ESTUDIANTE:\n{pregunta}"
 
-    # --- PASO 4: GENERACIÓN CON MISTRAL (HÍBRIDO Y PROTEGIDO) ---
+    # --- PASO 4: GENERACIÓN CON MISTRAL ---
     try:
         contenido = await anyio.to_thread.run_sync(
             _invocar_llm, 
@@ -208,7 +251,6 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
             user_content
         )
     except Exception as exc:
-        print(f"❌ Error crítico en el motor LLM: {exc}")
         raise HTTPException(status_code=503, detail="El servicio no está disponible en este momento.") from exc
     
     # --- PASO 5: CONSTRUCCIÓN DE FUENTES Y ANEXOS ---
@@ -222,7 +264,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
         if ruta_anexo:
             if not ruta_anexo.startswith("http") and not ruta_anexo.startswith("/"):
                 ruta_anexo = f"/{ruta_anexo}"
-            link_anexo = f"[📄 Descargar Formato Oficial (Word)]({ruta_anexo})"
+            link_anexo = f"[Descargar Formato Oficial (Word)]({ruta_anexo})"
             fuentes_finales.append(link_anexo)
 
     return ChatResponse(

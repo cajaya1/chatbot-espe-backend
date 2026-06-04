@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BookOpenText,
   ChevronRight,
+  CalendarDays,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -17,6 +18,7 @@ import useAuth from '../hooks/useAuth'
 const navigationItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Gestión de procesos', path: '/admin/documents', icon: Settings2 },
+  { label: 'Calendario Académico', path: '/admin/calendar', icon: CalendarDays },
   { label: 'Usuarios', path: '/admin/users', icon: Users, adminOnly: true },
 ]
 

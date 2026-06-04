@@ -4,6 +4,7 @@ import LogoIti from '../assets/LogoITI.png'
 
 function PublicFooter() {
   const currentYear = new Date().getFullYear()
+  const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
 
   return (
     <footer className="border-t border-sky-500/10 bg-[#061c2c] text-white">
@@ -46,7 +47,10 @@ function PublicFooter() {
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
             <p className="text-[15px] leading-relaxed text-sky-100/60">
-              Formamos líderes en Tecnologías de la Información con excelencia académica y compromiso social, facilitando la gestión de trámites y procesos estudiantiles.
+              Misión: Formar académicos, profesionales e investigadores de excelencia, creativos, humanistas, con capacidad de liderazgo, pensamiento crítico y alta conciencia ciudadana; generar, aplicar y difundir el conocimiento y, proporcionar e implementar alternativas de solución a los problemas del país, acordes con el plan Nacional de Desarrollo.
+            </p>
+            <p className="text-[15px] leading-relaxed text-sky-100/60">
+              Visión: Líder en la gestión del conocimiento y de la tecnología en el Sistema Nacional de Educación Superior, con prestigio Internacional y referente de práctica de valores éticos, cívicos y de servicio a la sociedad.
             </p>
           </section>
 
@@ -86,14 +90,14 @@ function PublicFooter() {
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
             <div className="space-y-4">
-              <a href="mailto:info@espe.edu.ec" 
+              <a href={`mailto:${supportEmail}`} 
                 className="flex items-center gap-4 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10 transition hover:bg-white/10">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400">
                   <Mail className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-sky-400/70">Correo</p>
-                  <p className="truncate text-sm text-white">info@espe.edu.ec</p>
+                  <p className="truncate text-sm text-white">{supportEmail}</p>
                 </div>
               </a>
 

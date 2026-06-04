@@ -14,6 +14,9 @@ from functools import lru_cache
 from mistralai.client import Mistral
 import chromadb
 from chromadb.utils import embedding_functions
+from sqlalchemy.orm import Session
+
+from app.models.calendario_academico import PeriodoAcademico
 
 _DB_PATH = Path(__file__).resolve().parents[2] / "institucional_vector_db"
 _DB_PATH.mkdir(parents=True, exist_ok=True)
@@ -129,6 +132,17 @@ def eliminar_contexto_proceso(
         pass
 
 
+def eliminar_contexto_calendario(periodo_id: str, collection_name: str = "calendario_academico") -> None:
+    if not periodo_id or not str(periodo_id).strip():
+        return
+
+    collection = _get_collection(collection_name)
+    try:
+        collection.delete(where={"periodo_id": str(periodo_id)})
+    except Exception:
+        pass
+
+
 def buscar_contexto(pregunta: str, n_results: int = 3) -> List[str]:
     if not pregunta or not pregunta.strip():
         return []
@@ -162,6 +176,24 @@ def buscar_contexto_proceso(
         n_results=n_results,
         include=["documents", "metadatas", "distances"],
         where={"fuente": codigo_proceso},
+    )
+
+
+def buscar_contexto_calendario(
+    pregunta: str,
+    n_results: int = 3,
+    collection_name: str = "calendario_academico",
+) -> dict:
+    if not pregunta or not pregunta.strip():
+        return {}
+
+    collection = _get_collection(collection_name)
+    q_emb = _embed_texts([pregunta])[0]
+
+    return collection.query(
+        query_embeddings=[q_emb],
+        n_results=n_results,
+        include=["documents", "metadatas", "distances"],
     )
 
 
@@ -266,3 +298,72 @@ def sincronizar_proceso_chromadb(codigo_proceso: str, titulo: str, contexto_lega
         print(f"Vectorizado en ChromaDB: {codigo_proceso}")
     except Exception as e:
         print(f"Error al vectorizar en ChromaDB el proceso {codigo_proceso}: {e}")
+
+
+def _build_texto_calendario(periodo: PeriodoAcademico) -> str:
+    actividades = list(periodo.actividades or [])
+    partes = [f"CALENDARIO ACADÉMICO ACTIVO: {periodo.nombre}"]
+
+    if periodo.fecha_fin_periodo:
+        partes.append(f"Fecha de fin del periodo: {periodo.fecha_fin_periodo.isoformat()}")
+
+    if periodo.es_actual:
+        partes.append("Estado: periodo vigente")
+
+    for actividad in actividades:
+        fecha_orden = actividad.fecha_orden.isoformat() if actividad.fecha_orden else ""
+        fecha_texto = actividad.fecha_texto.strip() if actividad.fecha_texto else fecha_orden
+        partes.append(f"Actividad: {actividad.actividad.strip()} - Fecha: {fecha_texto}")
+
+    return "\n\n".join([parte for parte in partes if str(parte).strip()])
+
+
+def sincronizar_calendario_chromadb(periodo_id, db: Session):
+    periodo = (
+        db.query(PeriodoAcademico)
+        .filter(PeriodoAcademico.id == str(periodo_id))
+        .first()
+    )
+
+    if not periodo:
+        raise ValueError("Periodo académico no encontrado.")
+
+    texto_para_ia = _build_texto_calendario(periodo)
+    fragmentos = _chunk_text(texto_para_ia)
+    if not fragmentos:
+        raise ValueError("No se generaron fragmentos del calendario.")
+
+    collection = _get_collection("calendario_academico")
+
+    try:
+        collection.delete(where={"periodo_id": str(periodo.id)})
+    except Exception:
+        pass
+
+    documentos = []
+    metadatos = []
+    ids = []
+
+    for i, fragmento in enumerate(fragmentos):
+        documentos.append(fragmento)
+        metadatos.append(
+            {
+                "fuente": "calendario_academico",
+                "periodo_id": str(periodo.id),
+                "periodo_nombre": periodo.nombre,
+                "es_actual": bool(periodo.es_actual),
+                "chunk_index": i,
+            }
+        )
+        ids.append(f"{periodo.id}-cal-{i}-{uuid.uuid4().hex[:8]}")
+
+    embeddings = _embed_texts(documentos)
+
+    collection.upsert(
+        documents=documentos,
+        metadatas=metadatos,
+        ids=ids,
+        embeddings=embeddings,
+    )
+
+    return ids

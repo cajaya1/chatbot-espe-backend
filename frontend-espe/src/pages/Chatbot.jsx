@@ -26,10 +26,11 @@ const renderFuente = (fuenteString) => {
 };
 
 function Chatbot() {
+  const welcomeMessage = 'Hola 👋 Soy el asistente virtual académico de la carrera de Tecnologías de la Información en Línea (ITIV) de la ESPE. ¿En qué trámite puedo ayudarte hoy?'
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hola 👋 Soy el asistente virtual académico de TI en Línea ESPE. ¿En qué trámite puedo ayudarte hoy?',
+      content: welcomeMessage,
       showOptions: true
     }
   ])
@@ -50,8 +51,6 @@ function Chatbot() {
       })
     }
   }, [messages, loading])
-
-  const suggestedQuestions = procesos.map((item) => item.titulo)
 
   useEffect(() => {
     const fetchProcesos = async () => {
@@ -111,17 +110,13 @@ function Chatbot() {
     setMessages([
       {
         role: 'assistant',
-        content: 'Hola 👋 Soy el asistente virtual académico de TI en Línea ESPE. ¿En qué trámite puedo ayudarte hoy?',
+        content: welcomeMessage,
         showOptions: true
       }
     ])
     setSelectedProceso(null)
     setChatMode('chat')
     toast.success('Conversación reiniciada')
-  }
-
-  const handleSuggestedQuestion = (question) => {
-    setInput(question)
   }
 
   const handleSelectProceso = (proceso) => {
@@ -143,23 +138,20 @@ function Chatbot() {
           </div>
 
           <div className="mt-8 space-y-6">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Asistente ITI</h3>
-              <p className="mt-2 text-xs leading-5 text-slate-600">
-                Especializado en el Reglamento de Régimen Académico y procesos internos de la carrera ITI.
-              </p>
-            </div>
+            <p className="text-xs leading-5 text-slate-600">
+              Selecciona un trámite para ver sus pasos y comenzar la consulta.
+            </p>
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Preguntas Sugeridas</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Procesos Soportados</h3>
               <div className="mt-3 flex flex-col gap-2">
-                {suggestedQuestions.map((q) => (
+                {procesos.map((proceso) => (
                   <button
-                    key={q}
-                    onClick={() => handleSuggestedQuestion(q)}
+                    key={proceso.codigo_proceso}
+                    onClick={() => handleSelectProceso(proceso)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-left text-xs text-slate-600 transition hover:bg-sky-50 hover:text-sky-700 hover:border-sky-100"
                   >
-                    {q}
+                    {proceso.titulo}
                   </button>
                 ))}
               </div>
@@ -305,13 +297,13 @@ function Chatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !loading && handleSend()}
-                placeholder="Escribe tu duda académica o selecciona un trámite..."
-                disabled={loading}
+                placeholder={selectedProceso ? 'Escribe tu duda académica sobre este trámite...' : 'Selecciona un trámite de la lista para comenzar...'}
+                disabled={loading || !selectedProceso}
                 className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-6 pr-14 text-sm text-slate-700 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all placeholder:text-slate-400 disabled:bg-slate-100"
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || loading || !selectedProceso}
                 className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center rounded-xl bg-sky-700 text-white transition hover:bg-sky-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-sky-200"
               >
                 {loading ? <Loader className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

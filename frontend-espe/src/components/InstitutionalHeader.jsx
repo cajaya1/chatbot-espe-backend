@@ -1,4 +1,5 @@
 import { Menu, UserRound } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
 import useAuth from '../hooks/useAuth'
@@ -21,10 +22,14 @@ function InstitutionalHeader({ onMenuClick }) {
             <Menu className="h-6 w-6 text-slate-600 transition-colors group-hover:text-sky-600" />
           </button>
           
-          <div className="relative flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm transition-transform hover:scale-105">
+          <Link
+            to="/"
+            className="relative flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm transition-transform hover:scale-105"
+            aria-label="Ir al inicio"
+          >
             <img src={LogoEspe} alt="Logo ESPE" className="h-10 w-auto object-contain" />
             <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
-          </div>
+          </Link>
         </div>
 
         {/* Lado Derecho: Usuario y Logo Secundario (TI) */}
