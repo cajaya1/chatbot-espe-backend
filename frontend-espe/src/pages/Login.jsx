@@ -73,7 +73,7 @@ function Login() {
             <span className="text-sky-400">Seguridad Académica</span>
           </h2>
           <p className="max-w-md text-lg text-slate-300 leading-relaxed font-light">
-            Administración de procesos tecnológicos y documentos reglamentarios de la carrera de TI.
+            Administración de procesos tecnológicos y documentos reglamentarios de la Carrera ITIV.
           </p>
         </div>
 

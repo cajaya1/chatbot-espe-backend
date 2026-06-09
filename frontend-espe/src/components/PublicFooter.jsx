@@ -1,4 +1,5 @@
 import { Mail, PhoneCall, MessageSquare, Send, MessageCircle, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
 
@@ -42,7 +43,7 @@ function PublicFooter() {
           <section className="space-y-6">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-sky-400">
-                Carrera de TI
+                Carrera ITIV
               </h3>
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
@@ -64,19 +65,19 @@ function PublicFooter() {
             </div>
             <nav className="flex flex-col gap-3">
               {[
-                { label: 'Inicio', href: '/' },
-                { label: 'Procesos Académicos', href: '/procesos-academicos' },
-                { label: 'Formatos y Anexos', href: '/formatos-anexos' },
-                { label: 'Bot TI en Línea', href: '/asistente-virtual' }
+                { label: 'Inicio', to: '/' },
+                { label: 'Procesos Académicos', to: '/procesos-academicos' },
+                { label: 'Formatos y Anexos', to: '/formatos-anexos' },
+                { label: 'Bot TI en Línea', to: '/asistente-virtual' }
               ].map((link) => (
-                <a 
+                <Link
                   key={link.label}
-                  href={link.href} 
+                  to={link.to}
                   className="group flex items-center gap-2 text-[15px] text-sky-100/70 transition-colors hover:text-white"
                 >
                   <ChevronRight className="h-4 w-4 text-sky-500 transition-transform group-hover:translate-x-1" />
                   {link.label}
-                </a>
+                </Link>
               ))}
             </nav>
           </section>
@@ -156,7 +157,7 @@ function PublicFooter() {
               © {currentYear} Universidad de las Fuerzas Armadas ESPE. Todos los derechos reservados.
             </p>
             <div className="flex gap-6 text-[11px] font-bold uppercase tracking-[0.2em] text-sky-400/60">
-              <span>Carrera de TI</span>
+              <span>Carrera ITIV</span>
               <span className="text-white/10">|</span>
               <span>Sangolquí, Ecuador</span>
             </div>

@@ -18,7 +18,7 @@ function Home() {
               Plataforma de Asistencia <span className="text-sky-400">Académica</span>
             </h1>
             <p className="mx-auto max-w-2xl text-lg text-slate-200 sm:text-xl">
-              Gestión ágil de procesos y consultas reglamentarias para estudiantes de Ingeniería en Tecnologías de la Información en línea.
+              Gestión ágil de procesos y consultas reglamentarias para estudiantes de Tecnologías de la Información en Línea (ITIV).
             </p>
           </div>
 
@@ -134,7 +134,7 @@ function Home() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">Guía de Procesos Académicos</h3>
-                      <p className="mt-2 text-sm text-slate-500">Consulta los requisitos y pasos oficiales para los trámites de la carrera de TI.</p>
+                      <p className="mt-2 text-sm text-slate-500">Consulta los requisitos y pasos oficiales para los trámites de la Carrera ITIV.</p>
                     </div>
                   </div>
                   <Link

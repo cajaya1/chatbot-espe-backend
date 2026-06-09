@@ -60,7 +60,7 @@ function Sidebar({ open = true, onClose, mobile = false }) {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400/80 leading-none">Portal Administrativo</p>
-            <h1 className="mt-1.5 text-sm font-bold text-white leading-none">Carrera de TI - ESPE</h1>
+            <h1 className="mt-1.5 text-sm font-bold text-white leading-none">Carrera ITIV - ESPE</h1>
           </div>
         </div>
 

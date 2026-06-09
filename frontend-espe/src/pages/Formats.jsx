@@ -42,7 +42,7 @@ function Formats() {
           <p className="text-sm font-semibold uppercase tracking-widest text-sky-400">Centro de Descargas</p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Formatos y Anexos Oficiales</h1>
           <p className="mt-6 max-w-2xl text-lg text-slate-300">
-            Encuentre y descargue toda la documentación oficial necesaria para sus trámites académicos en la carrera de TI.
+            Encuentre y descargue toda la documentación oficial necesaria para sus trámites académicos en la Carrera ITIV.
           </p>
           
           <div className="mt-10 flex w-full max-w-md items-center rounded-2xl bg-white/10 p-2 backdrop-blur-md border border-white/20">

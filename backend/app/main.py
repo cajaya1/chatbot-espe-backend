@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, SessionLocal, engine
-from app.core.seed import seed_procesos, seed_users
+from app.core.seed import seed_procesos, seed_users, seed_calendario
 from app.models import user as user_model  # noqa: F401
 from app.models import document as document_model  # noqa: F401
 from app.models import proceso_academico as proceso_academico_model  # noqa: F401
@@ -27,6 +27,7 @@ from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.procesos import router as procesos_router
 from app.routes.calendarios import router as calendarios_router
+from app.routes.telegram import router as telegram_router
 from app.services.chroma_service import ensure_collection, sincronizar_proceso_chromadb, CLIENT
 from app.services.chroma_service import sincronizar_calendario_chromadb
 
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI):
         # 1. Ejecutar seeds iniciales
         seed_users(db)
         seed_procesos(db)
+        seed_calendario(db)
 
         # 2. Sincronización vectorial en memoria para despliegue en la nube
         procesos_activos = (
@@ -136,6 +138,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(procesos_router)
 app.include_router(calendarios_router)
+app.include_router(telegram_router)
 
 
 @app.get("/")

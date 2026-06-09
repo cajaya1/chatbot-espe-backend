@@ -1,6 +1,10 @@
+import uuid
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from app.models.proceso_academico import ProcesoAcademico
+from app.models.calendario_academico import PeriodoAcademico, ActividadCalendario
 from app.schema.user_schema import UserCreate
 from app.services.chroma_service import upsert_contexto_proceso
 from app.core.utils import generate_next_codigo_proceso
@@ -26,11 +30,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-01",
             "titulo": "Retiro Voluntario",
             "flujo_pasos": [
-                "Paso 1: Presentar la solicitud de retiro voluntario al Director de Carrera en el término máximo de cinco (5) días contados desde el inicio de clases.",
-                "Paso 2: Adjuntar a la solicitud la factura del pago correspondiente al trámite administrativo.",
-                "Paso 3: El Director de Carrera verificará que la solicitud esté dentro del plazo. De ser así, autorizará y remitirá el trámite a la Unidad de Registro.",
-                "Paso 4: La Unidad de Registro ingresará la observación RETIRO/VOLUNTARIO en el sistema.",
-                "Paso 5: Se realizará el recálculo por pérdida de gratuidad. Si se generan valores a pagar, se notificará al estudiante y a la Unidad Financiera.",
+                "Remitir la solicitud formal de retiro voluntario dirigida al Director de Carrera, dentro del término máximo de cinco (5) días contados a partir de la fecha de inicio de clases conforme al calendario académico vigente.",
+                "Adjuntar a la solicitud la factura que acredite el pago del rubro por concepto de trámite administrativo de retiro voluntario.",
+                "El Director de Carrera verificará que la solicitud se encuentre dentro del término legal establecido y, de ser procedente, autorizará y remitirá el trámite a la Unidad de Registro para su registro en el sistema académico con la observación RETIRO/VOLUNTARIO.",
+                "La Unidad de Registro procederá al guardado y grabación de la matrícula en el sistema académico para el recálculo de valores correspondientes a pérdida de gratuidad.",
+                "En caso de generarse valores a pagar por concepto de pérdida de gratuidad, se notificará al estudiante para su cancelación y a la Unidad Financiera para el inicio del proceso de recaudación o la generación del impedimento económico correspondiente.",
             ],
             "contexto_legal": (
                 "Artículo 189. Retiro de asignaturas, cursos, módulos o sus equivalentes. - Un estudiante de tercer nivel de formación, podrá retirarse acogiéndose a los siguientes tipos de retiro:\n\n"
@@ -47,11 +51,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-02",
             "titulo": "Retiro por Caso Fortuito o Fuerza Mayor",
             "flujo_pasos": [
-                "Paso 1: Solicitar el retiro al Director de Carrera hasta el último día de clases, adjuntando documentación de respaldo (certificados médicos validados por el Sistema Integrado de Salud de la Universidad).",
-                "Paso 2: El Director de Carrera analizará la documentación. De ser necesario, solicitará un informe a Bienestar Universitario en un término máximo de cinco (5) días.",
-                "Paso 3: El Director de Carrera convocará al Consejo de Carrera (en un máximo de 5 días) para conocimiento y resolución del caso.",
-                "Paso 4: El Consejo de Carrera resolverá y notificará al estudiante, a la Dirección y a la Unidad de Registro.",
-                "Paso 5: La Unidad de Registro ingresará la observación RETIRO CASO FORTUITO/FUERZA MAYOR. Esta matrícula quedará sin efecto y no se contabilizará para terceras matrículas ni para el promedio.",
+                "Presentar la solicitud de retiro ante el Director de Carrera, acompañada de la documentación de respaldo que sustente la situación fortuita o de fuerza mayor; si se adjuntan certificaciones médicas, estas deberán estar validadas o emitidas por el Sistema Integrado de Salud de la Universidad. Dicha solicitud podrá ser presentada hasta el último día de clases conforme al calendario académico vigente.",
+                "El Director de Carrera analizará la documentación presentada y, de requerir verificación de los hechos, solicitará a la Unidad de Bienestar Universitario la emisión del informe pertinente en el término máximo de cinco (5) días.",
+                "El Director de Carrera convocará al Consejo de Carrera, en un término no mayor a cinco (5) días contados desde la recepción de la solicitud, para el conocimiento y resolución de la petición, adjuntando toda la documentación de respaldo.",
+                "El Consejo de Carrera emitirá su resolución y notificará al estudiante, a la Dirección de Carrera y a la Unidad de Registro mediante la Resolución correspondiente.",
+                "La Unidad de Registro, en caso de que la Resolución conceda el retiro, registrará el mismo con la observación RETIRO CASO FORTUITO/FUERZA MAYOR; la matrícula quedará sin efecto y no se contabilizará para terceras matrículas ni para el promedio general del estudiante.",
             ],
             "contexto_legal": (
                 "deberá solicitar al Director de Carrera el retiro de una, algunas o todas las asignaturas, cursos, módulos o sus equivalentes en los que se encuentre matriculado en un período académico, adjuntando la documentación de respaldo que sustente su petición; en caso de adjuntar certificaciones médicas, estas deberán estar validadas o emitidas por el Sistema Integrado de Salud de la Universidad. La solicitud de retiro podrá ser presentada hasta el último día de clases previsto en el correspondiente calendario académico. En caso de que el estudiante no pueda realizar ni presentar personalmente la solicitud de retiro, podrá ser presentada por un familiar o un tercero a nombre del estudiante, dejando constancia documentada de la causa por la cual el estudiante no puede pedirlo de manera personal.\n\n"
@@ -71,11 +75,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-03",
             "titulo": "Reconocimiento y Homologación de Asignaturas",
             "flujo_pasos": [
-                "Paso 1: Verificar que el contenido, profundidad y número de horas sean equivalentes al menos al 80% de la asignatura en la Universidad.",
-                "Paso 2: Asegurar que no hayan transcurrido más de diez (10) años desde la aprobación de la asignatura motivo de homologación.",
-                "Paso 3: Presentar la solicitud formal de homologación mediante análisis comparativo de contenidos (micro currículo).",
-                "Paso 4: Realizar el pago de los aranceles determinados para este proceso.",
-                "Paso 5: De aceptarse la homologación, el estudiante mantendrá la gratuidad de la educación superior pública, de ser el caso.",
+                "Verificar que el contenido, profundidad y número de horas de la asignatura a homologar sean al menos equivalentes al ochenta por ciento (80%) de la asignatura correspondiente en la Universidad.",
+                "Constatar que no hayan transcurrido más de diez (10) años desde la culminación del último período académico en que fue aprobada la asignatura objeto de homologación.",
+                "Presentar la solicitud formal de homologación mediante análisis comparativo de contenidos (micro currículo), dirigida a la instancia institucional competente.",
+                "Efectuar el pago de los aranceles determinados para este proceso conforme a la normativa interna vigente.",
+                "En caso de aprobarse la homologación, el estudiante mantendrá la gratuidad de la educación superior pública, de ser el caso, conforme a la normativa aplicable.",
             ],
             "contexto_legal": (
                 "Artículo 217. Homologación. - Es la transferencia de horas académicas o créditos correspondientes a las asignaturas, cursos, módulos o sus equivalentes aprobados, con fines de movilidad interna o entre Instituciones de Educación Superior nacionales e internacionales; para casos de transiciones en procesos de rediseño y/o ajuste curricular cuando corresponda.\n\n"
@@ -93,11 +97,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-04",
             "titulo": "Cambio de sede, carrera o IES",
             "flujo_pasos": [
-                "Paso 1: Confirmar haber finalizado al menos 1 período académico (para cambios internos o de sede) o 2 períodos (para IES externas).",
-                "Paso 2: Cumplir con el puntaje mínimo de admisión de cohorte de la carrera receptora en el período académico que se solicita la movilidad.",
-                "Paso 3: Si estabas en primer nivel y te retiraste antes de finalizar el período, no puedes aplicar a cambio de carrera; debes solicitar reingreso o iniciar el proceso de admisión general.",
-                "Paso 4: Verificar la existencia de cupos en la carrera receptora.",
-                "Paso 5: Tomar en cuenta que, para mantener la gratuidad de la educación superior pública, el cambio de carrera o sede se podrá realizar por una sola vez.",
+                "Acreditar haber cursado y finalizado al menos un (1) período académico ordinario de la malla curricular en la carrera de origen para cambios internos o de sede, o al menos dos (2) períodos académicos para solicitudes provenientes de otras Instituciones de Educación Superior.",
+                "Cumplir con el puntaje mínimo de admisión de cohorte de la carrera receptora correspondiente al período académico en el que se solicita la movilidad.",
+                "Tener presente que, si el estudiante se encontraba matriculado por primera vez en asignaturas de primer nivel y se retiró antes de finalizar el período, no podrá solicitar cambio de carrera; deberá solicitar el reingreso a su carrera de origen o iniciar el proceso de admisión conforme a la normativa del sistema de acceso a la educación superior.",
+                "Verificar la existencia de cupos disponibles en la carrera receptora para el período académico correspondiente.",
+                "Considerar que, en lo referente a la gratuidad de la educación superior pública, el cambio de carrera o de sede podrá realizarse por una sola vez.",
             ],
             "contexto_legal": (
                 "Artículo 212. Cambio de carrera y cambio de Institución de Educación Superior. - Estarán sujetos a lo establecido en la normativa interna emitida para el efecto y se podrán realizar bajo las siguientes reglas:\n\n"
@@ -122,10 +126,10 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-06",
             "titulo": "Solicitud de Reingreso",
             "flujo_pasos": [
-                "Paso 1: Verificar en el récord académico que no hayan transcurrido más de diez (10) años contados desde el final del último período cursado.",
-                "Paso 2: Si la carrera sigue vigente y la malla curricular se modificó, se deberá realizar un proceso de reconocimiento de horas/créditos.",
-                "Paso 3: Si han transcurrido más de diez (10) años, el reingreso se deberá realizar obligatoriamente mediante validación de conocimientos de las asignaturas aprobadas.",
-                "Paso 4: Si la carrera está 'no vigente', se implementará un plan individual cursando asignaturas afines en carreras que sí estén vigentes.",
+                "Verificar en el récord académico que no hayan transcurrido más de diez (10) años contados a partir de la finalización del último período académico en el que se produjo la interrupción de los estudios.",
+                "En caso de que la carrera de destino se encuentre vigente y su plan de estudios o malla curricular hayan sido modificados, se deberá realizar el proceso de reconocimiento de horas y/o créditos conforme a la normativa institucional vigente.",
+                "Cuando hayan transcurrido más de diez (10) años desde la interrupción, el reingreso solo podrá efectuarse mediante validación de conocimientos de las asignaturas, cursos, módulos o sus equivalentes aprobados, conforme al reglamento y normativa vigente aplicable.",
+                "Si la carrera se encuentra en estado 'no vigente' o 'no vigente habilitado para registro de títulos', se implementará un plan individual para la culminación de los estudios, cursando en una carrera vigente asignaturas afines, las cuales deberán ser objeto de reconocimiento de horas y/o créditos una vez aprobadas.",
             ],
             "contexto_legal": (
                 "Artículo 195. Reingreso. – Si un estudiante no ha culminado sus estudios en una carrera, podrá continuar sus estudios en la misma carrera, o en otra carrera, siempre que se encuentren vigentes a la fecha de reingreso. Este trámite se podrá realizar por parte del estudiante, considerando que en ningún caso haya transcurrido más de diez (10) años contados a partir de la finalización del último período académico en el que se produjo la interrupción de sus estudios. Cuando un estudiante requiera reingresar a una carrera vigente, en la que el plan de estudios o malla curricular hayan sido modificados, se deberá realizar el reconocimiento de horas y/o créditos conforme lo establecido en el presente reglamento, para que continúe sus estudios.\n\n"
@@ -140,11 +144,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-07",
             "titulo": "Entrega de evaluaciones fuera del plazo límite",
             "flujo_pasos": [
-                "Paso 1: Presentar la solicitud debidamente sustentada al Director de Carrera en el término de tres (3) días subsiguientes a la fecha de la evaluación.",
-                "Paso 2: El Director de Carrera analizará si el justificativo se enmarca dentro de las causales oficiales de justificación de inasistencia.",
-                "Paso 3: Si es justificado, se rendirá la prueba sin disminución de puntos. Si no aplica a las causales, se rebajará el veinte por ciento (20%) de la calificación.",
-                "Paso 4: El personal académico establecerá la nueva fecha para la recepción o aplicación de la evaluación.",
-                "Paso 5: Si el estudiante incumple con la nueva fecha fijada, la calificación será registrada con cero (0).",
+                "Presentar la solicitud debidamente sustentada ante el Director de Carrera, en el término de tres (3) días subsiguientes a la fecha en que se entregó o rindió el instrumento de evaluación.",
+                "El Director de Carrera analizará si el justificativo presentado se enmarca dentro de las causales oficiales de justificación de inasistencia establecidas en la normativa institucional.",
+                "De verificarse que el justificativo es procedente, el estudiante rendirá el instrumento de evaluación sin disminución de puntos; en caso contrario, se aplicará una rebaja del veinte por ciento (20%) de la calificación a obtener.",
+                "El personal académico responsable establecerá y notificará al estudiante la nueva fecha para la recepción o aplicación del instrumento de evaluación.",
+                "Si el estudiante no cumple con la nueva fecha fijada por el personal académico, la calificación del instrumento de evaluación será registrada con cero (0).",
             ],
             "contexto_legal": (
                 "Artículo 150. Justificación para presentar medios e instrumentos de evaluación fuera de plazo. – Los medios e instrumentos de evaluación se deberán entregar o rendir en las fechas y horas señaladas para el efecto por el personal académico responsable de la asignatura, curso, módulo o su equivalente. Excepción hecha para las causas de justificación de inasistencia, para lo cual se requerirá de la autorización expresa del Director de Carrera o Coordinador de Programa, con base a la solicitud presentada por el estudiante, en el término de tres (3) días subsiguientes a la fecha en que se entregó o rindió el instrumento de evaluación, según corresponda. La solicitud deberá estar debidamente sustentada.\n\n"
@@ -158,11 +162,11 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-08",
             "titulo": "Solicitud de recalificación de evaluaciones",
             "flujo_pasos": [
-                "Paso 1: Presentar la solicitud de recalificación dentro de los plazos establecidos. Si se tiene el instrumento de evaluación bajo custodia, se debe informar.",
-                "Paso 2: El Director de Carrera (en 1 día) enviará la solicitud al Director del Departamento para pedir la designación de dos docentes y solicitar la rúbrica al profesor original.",
-                "Paso 3: El Director de Departamento designará a los dos evaluadores (en 1 día) y les entregará la rúbrica y la documentación.",
-                "Paso 4: Los docentes designados tendrán un máximo de dos (2) días para recalificar y enviar el informe con el nuevo promedio al Director de Carrera.",
-                "Paso 5: Si la nueva nota es mayor, el Director de Carrera notificará (en 1 día) al docente original para modificar el registro. Si es menor, se notificará al estudiante y se archivará el trámite sin cambios en la nota.",
+                "Presentar la solicitud de recalificación dentro de los plazos establecidos en la normativa institucional, indicando si el instrumento de evaluación se encuentra bajo la custodia del estudiante.",
+                "El Director de Carrera, en el término de un (1) día a partir de la recepción de la solicitud, remitirá el instrumento o la solicitud al Director del Departamento correspondiente, requiriendo la designación de dos (2) miembros del personal académico para la recalificación y la entrega de la rúbrica por parte del docente responsable.",
+                "El Director de Departamento, en el término máximo de un (1) día, dispondrá al docente responsable la entrega de la rúbrica y del instrumento de evaluación; en un término adicional de un (1) día, designará a los evaluadores y les adjuntará toda la documentación recopilada.",
+                "El personal académico designado recalificará el instrumento en el término máximo de dos (2) días y remitirá al Director de Carrera el informe debidamente suscrito con las calificaciones y el promedio obtenido.",
+                "Si el promedio de recalificación es mayor a la calificación registrada, el Director de Carrera notificará al docente responsable para la modificación del registro conforme al procedimiento reglamentario; si es menor, se informará al estudiante del resultado y se archivará la documentación sin alteración de la nota original.",
             ],
             "contexto_legal": (
                 "Artículo 160. Procedimiento de recalificación de medios e instrumentos de evaluación. - A partir de la recepción de la solicitud de recalificación presentada por el estudiante, siempre que la misma se encuentre dentro de los plazos establecidos para la recalificación, el Director de Carrera o Coordinador de Nivelación, en el término de un (1) día, remitirá el medio o instrumento de evaluación, o únicamente la solicitud en caso de que el pedido de recalificación sea de un medio o instrumento de evaluación rendido de forma oral, al Director del Departamento que corresponda, solicitando:\n\n"
@@ -179,10 +183,10 @@ def seed_procesos(db: Session) -> None:
             "codigo_proceso": "PROC-05",
             "titulo": "Legalización de Documentos",
             "flujo_pasos": [
-                "Paso 1: Determinar quiénes deben suscribir el documento a legalizar (autoridades, servidores públicos y/o estudiantes).",
-                "Paso 2: Definir en conjunto una sola modalidad de suscripción para todo el documento (enteramente mediante firma electrónica o enteramente de forma manuscrita).",
-                "Paso 3: Asegurar que no se combinen firmas electrónicas y manuscritas en el mismo documento, ya que esto lo invalidaría según la Ley de Comercio Electrónico.",
-                "Paso 4: Firmar el documento bajo la modalidad única acordada para que el servidor público o autoridad pueda validarlo."
+                "Identificar a todos los suscriptores del documento a legalizar, distinguiendo entre autoridades y servidores públicos, cuya firma electrónica es obligatoria en el ejercicio de sus funciones conforme al Decreto Ejecutivo 981 y el Acuerdo Ministerial No. 17, y los estudiantes u otros terceros no servidores públicos.",
+                "Determinar de manera conjunta una única modalidad de suscripción para todo el documento, ya sea íntegramente mediante firma electrónica o íntegramente de forma manuscrita, sin admitir combinaciones.",
+                "Verificar que en ningún caso se combinen firmas electrónicas y manuscritas en el mismo documento, pues ello invalidaría el instrumento conforme a la Ley de Comercio Electrónico, Firmas Electrónicas y Mensajes de Datos.",
+                "Proceder a la suscripción del documento bajo la modalidad única acordada, a fin de que el servidor público o autoridad competente pueda validar y legalizar el mismo.",
             ],
             "contexto_legal": "De conformidad con los artículos 1 del Decreto Ejecutivo 981 de 28 de enero de 2020; 2 y 4 del Acuerdo Ministerial No. 17 de 1 de julio de 2020, el uso de la firma electrónica es obligatorio únicamente para las autoridades, funcionarios y servidores públicos que en el ejercicio de sus funciones y competencias suscriban documentos. La Ley de Comercio Electrónico, Firmas Electrónicas y Mensajes de Datos no prevé la posibilidad de que un mismo documento sea suscrito por servidores públicos mediante el uso de firma electrónica y por terceros de forma manuscrita. Respecto a los documentos que deban ser suscritos por terceros que no son servidores públicos como es el caso de los estudiantes, en conjunto con los servidores públicos se deberá determinar una sola modalidad para su suscripción, es decir firma electrónica o firma manuscrita, ya que cuando en un documento deba consignarse más de una firma, todas ellas deberán realizarse bajo la misma modalidad, no pueden combinarse.",
             "ruta_anexo": "/formatos/Anexo_Legalizacion.docx"
@@ -238,3 +242,47 @@ def seed_procesos(db: Session) -> None:
                 titulo=data["titulo"],
                 flujo_pasos=data["flujo_pasos"],
             )
+
+
+def seed_calendario(db: Session) -> None:
+    nombre_periodo = "SI-2026: MARZO - AGOSTO 2026"
+    existente = db.query(PeriodoAcademico).filter(PeriodoAcademico.nombre == nombre_periodo).first()
+    if existente:
+        return
+
+    # Marcar todos los periodos anteriores como no actuales
+    db.query(PeriodoAcademico).filter(PeriodoAcademico.es_actual.is_(True)).update({"es_actual": False})
+
+    periodo = PeriodoAcademico(
+        id=str(uuid.uuid4()),
+        nombre=nombre_periodo,
+        fecha_fin_periodo=date(2026, 8, 31),
+        es_actual=True,
+    )
+    db.add(periodo)
+    db.flush()
+
+    actividades = [
+        ("Recepción de solicitudes de retiro voluntario",           "06 al 10 de abril de 2026",                        date(2026, 4, 6)),
+        ("Trámite de solicitudes de retiro voluntario",             "07 al 13 de abril de 2026",                        date(2026, 4, 7)),
+        ("Registro de retiro voluntario y actualización de matrícula", "08 al 14 de abril de 2026",                     date(2026, 4, 8)),
+        ("Actividades académicas primer parcial",                   "06 de abril al 22 de mayo de 2026",                date(2026, 4, 6)),
+        ("Evaluaciones primer parcial",                             "26 de mayo al 01 de junio de 2026",                date(2026, 5, 26)),
+        ("Ingreso primera calificación al sistema académico",       "27 de mayo al 04 de junio de 2026",                date(2026, 5, 27)),
+        ("Actividades académicas segundo parcial",                  "01 de junio al 17 de julio de 2026",               date(2026, 6, 1)),
+        ("Evaluaciones segundo parcial",                            "20 al 24 de julio de 2026",                        date(2026, 7, 20)),
+        ("Ingreso segunda calificación al sistema académico",       "21 al 29 de julio de 2026",                        date(2026, 7, 21)),
+        ("Examen final",                                            "27 al 31 de julio de 2026",                        date(2026, 7, 27)),
+        ("Ingreso de la calificación de examen final al sistema académico", "28 de julio al 05 de agosto de 2026",      date(2026, 7, 28)),
+    ]
+
+    for actividad, fecha_texto, fecha_orden in actividades:
+        db.add(ActividadCalendario(
+            id=str(uuid.uuid4()),
+            periodo_id=periodo.id,
+            actividad=actividad,
+            fecha_texto=fecha_texto,
+            fecha_orden=fecha_orden,
+        ))
+
+    db.commit()

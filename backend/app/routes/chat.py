@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import DIRECTOR_CORREO
 from app.core.database import get_db
 from app.models.proceso_academico import ProcesoAcademico
+from app.models.calendario_academico import PeriodoAcademico
 from app.services.chroma_service import buscar_contexto_calendario, buscar_contexto_proceso
 
 router = APIRouter(tags=["chat"])
@@ -53,21 +54,32 @@ def _construir_fuente_formateada(fragmentos: List[str]) -> str:
     return f"[{_REGLAMENTO_NOMBRE}{sufijo_articulos}]({_REGLAMENTO_URL})"
 
 
-def _build_system_prompt() -> str:
-    fecha_actual = datetime.now().strftime("%Y-%m-%d")
+def _build_system_prompt(calendario_texto: str = "") -> str:
+    fecha_actual = datetime.now().strftime("%d de %B de %Y")
+    fecha_iso = datetime.now().strftime("%Y-%m-%d")
+
+    seccion_calendario = ""
+    if calendario_texto:
+        seccion_calendario = (
+            f"\nCALENDARIO ACADÉMICO VIGENTE (periodo actual):\n"
+            f"{calendario_texto}\n"
+        )
+
     return (
-        f"Eres el Asistente Académico Inteligente oficial de la carrera de Tecnologías de la Información en Linea (ITIV) de la ESPE.\n"
+        f"Eres el Asistente Académico Inteligente oficial de la carrera de Tecnologías de la Información en Línea (ITIV) de la ESPE.\n"
         f"Tu tarea es responder con empatía, claridad y precisión basándote EXCLUSIVAMENTE en el contexto institucional provisto.\n\n"
-        f"Hoy es {fecha_actual}. Si el usuario pregunta por fechas o plazos de un trámite, DEBES comparar las fechas del calendario académico provisto con la fecha de hoy e indicarle si está a tiempo, cuántos días le quedan o si el plazo ya venció.\n\n"
+        f"Hoy es {fecha_actual} (fecha ISO: {fecha_iso}).{seccion_calendario}\n"
         f"INSTRUCCIONES ESTRICTAS DE FORMATO Y ESTILO:\n"
         f"- BAJO NINGUNA CIRCUNSTANCIA utilices emojis en tus respuestas.\n"
         f"- NO utilices sintaxis Markdown como asteriscos (**) para negritas ni hashtags (#). Escribe en texto plano tradicional.\n\n"
         f"INSTRUCCIONES DE OPERACIÓN:\n"
-        f"1. BASADO EN EVIDENCIA: Para preguntas sobre trámites, responde usando ÚNICAMENTE la información contenida dentro de las reglas recuperadas.\n"
-        f"2. CITA JURÍDICA PURA: Está ESTRICTAMENTE PROHIBIDO mencionar nombres de archivos, extensiones '.txt' o etiquetas de formato. Si debes citar la fuente, menciona ÚNICAMENTE el artículo (por ejemplo: 'Según el Artículo 195 del Reglamento Interno...').\n"
-        f"3. ANEXOS: Si te preguntan por formatos o anexos, limítate a decir amablemente que el link de descarga se encuentra adjunto al final del mensaje en la sección de fuentes.\n"
-        f"4. PRECISIÓN DE PLAZOS: Si un documento menciona 'dentro de los plazos establecidos' pero no especifica los días, indica que debe confirmar el plazo exacto directamente con el Director de Carrera.\n"
-        f"5. CERO CONSEJOS EXTERNOS: No recomiendes hablar con otras autoridades para buscar 'soluciones amigables'. Toda derivación o consulta que no esté en el reglamento debe ser dirigida EXCLUSIVAMENTE al Director de Carrera al correo: {DIRECTOR_CORREO}."
+        f"1. EVALUACION TEMPORAL: Si el usuario pregunta por fechas, plazos o si puede realizar un trámite, DEBES comparar la fecha de hoy ({fecha_iso}) con las fechas del calendario académico provisto. Indica en lenguaje natural si el estudiante está a tiempo, cuántos días le quedan, o si el plazo ya venció. Si el plazo venció, explica qué opciones le quedan según el reglamento.\n"
+        f"2. CITA DEL REGLAMENTO: Para respaldar cada paso o condición, DEBES citar textualmente el artículo del Reglamento Interno de Régimen Académico y de Estudiantes que aplica. Usa el formato: 'Según el Artículo [número] del Reglamento Interno...' seguido de la cita textual pertinente.\n"
+        f"3. BASADO EN EVIDENCIA: Para preguntas sobre trámites, responde usando ÚNICAMENTE la información contenida dentro de las reglas recuperadas y el calendario provisto.\n"
+        f"4. CITA JURÍDICA PURA: Está ESTRICTAMENTE PROHIBIDO mencionar nombres de archivos, extensiones '.txt' o etiquetas de formato. Cita ÚNICAMENTE el artículo del reglamento.\n"
+        f"5. ANEXOS: Si te preguntan por formatos o anexos, limítate a decir amablemente que el link de descarga se encuentra adjunto al final del mensaje en la sección de fuentes.\n"
+        f"6. PRECISIÓN DE PLAZOS: Si un documento menciona 'dentro de los plazos establecidos' pero no especifica los días, indica que debe confirmar el plazo exacto directamente con el Director de Carrera.\n"
+        f"7. CERO CONSEJOS EXTERNOS: No recomiendes hablar con otras autoridades para buscar 'soluciones amigables'. Toda derivación o consulta que no esté en el reglamento debe ser dirigida EXCLUSIVAMENTE al Director de Carrera al correo: {DIRECTOR_CORREO}."
     )
 
 
@@ -243,11 +255,20 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
     intro_descubrimiento = f"(El usuario está preguntando sobre el proceso: {proceso.titulo}. Responde asumiendo este contexto)."
     user_content = f"{intro_descubrimiento}\n\nCONTEXTO INSTITUCIONAL:\n{contexto_plano}\n\nPREGUNTA DEL ESTUDIANTE:\n{pregunta}"
 
+    # --- PASO 3.5: OBTENER CALENDARIO ACTIVO ---
+    calendario_texto = ""
+    periodo_actual = db.query(PeriodoAcademico).filter(PeriodoAcademico.es_actual.is_(True)).first()
+    if periodo_actual and periodo_actual.actividades:
+        lineas = [f"Periodo: {periodo_actual.nombre}"]
+        for act in periodo_actual.actividades:
+            lineas.append(f"- {act.actividad}: {act.fecha_texto}")
+        calendario_texto = "\n".join(lineas)
+
     # --- PASO 4: GENERACIÓN CON MISTRAL ---
     try:
         contenido = await anyio.to_thread.run_sync(
-            _invocar_llm, 
-            _build_system_prompt(), 
+            _invocar_llm,
+            _build_system_prompt(calendario_texto),
             user_content
         )
     except Exception as exc:
