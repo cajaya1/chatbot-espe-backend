@@ -32,82 +32,80 @@ from app.services.chroma_service import ensure_collection, sincronizar_proceso_c
 from app.services.chroma_service import sincronizar_calendario_chromadb
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # --- LÓGICA DE ENCENDIDO (STARTUP) ---
-    print("Iniciando servidor: Configurando base de datos y reconstruyendo ChromaDB...")
-    
-    # 1. BORRAR LA COLECCIÓN VIEJA PARA ARREGLAR LAS DIMENSIONES (384 vs 1024)
-    try:
-        CLIENT.delete_collection("procesos_academicos")
-        print("Colección 'procesos_academicos' reseteada para recibir vectores de Mistral (1024d).")
-    except Exception:
-        pass
+async def _vectorizar_en_background() -> None:
+    """
+    Reconstruye ChromaDB y vectoriza procesos/calendarios en segundo plano,
+    DESPUÉS de que uvicorn ya está escuchando en el puerto.
+    Incluye pausas para respetar el rate-limit de la API gratuita de Mistral.
+    """
+    print("[Background] Iniciando reconstrucción de ChromaDB...")
 
-    try:
-        CLIENT.delete_collection("calendario_academico")
-        print("Colección 'calendario_academico' reseteada para recibir vectores de Mistral (1024d).")
-    except Exception:
-        pass
-        
-    try:
-        CLIENT.delete_collection("documentos")
-    except Exception:
-        pass
+    for nombre in ("procesos_academicos", "calendario_academico", "documentos"):
+        try:
+            CLIENT.delete_collection(nombre)
+            print(f"[Background] Colección '{nombre}' reseteada.")
+        except Exception:
+            pass
 
-    Base.metadata.create_all(bind=engine)
     ensure_collection()
     ensure_collection("procesos_academicos")
     ensure_collection("calendario_academico")
-    
+
     db = SessionLocal()
     try:
-        # 1. Ejecutar seeds iniciales
-        seed_users(db)
-        seed_procesos(db)
-        seed_calendario(db)
-
-        # 2. Sincronización vectorial en memoria para despliegue en la nube
         procesos_activos = (
             db.query(proceso_academico_model.ProcesoAcademico)
             .filter(proceso_academico_model.ProcesoAcademico.es_actual == True)
             .all()
         )
-        
-        if procesos_activos:
-            for proceso in procesos_activos:
-                sincronizar_proceso_chromadb(
-                    codigo_proceso=proceso.codigo_proceso,
-                    titulo=proceso.titulo,
-                    contexto_legal=proceso.contexto_legal,
-                    flujo_pasos=proceso.flujo_pasos
-                )
-                # Pausa de 2 segundos para respetar el límite de la API gratuita de Mistral
-                await asyncio.sleep(2)
-                
-            print(f"Se vectorizaron {len(procesos_activos)} procesos exitosamente para el RAG.")
-        else:
-            print("La base de datos de Postgres está vacía. No hay procesos para vectorizar.")
+        for proceso in procesos_activos:
+            sincronizar_proceso_chromadb(
+                codigo_proceso=proceso.codigo_proceso,
+                titulo=proceso.titulo,
+                contexto_legal=proceso.contexto_legal,
+                flujo_pasos=proceso.flujo_pasos,
+            )
+            await asyncio.sleep(2)  # Respetar rate-limit de Mistral free tier
+        print(f"[Background] {len(procesos_activos)} procesos vectorizados.")
 
-        periodos_academicos = db.query(calendario_academico_model.PeriodoAcademico).all()
-        if periodos_academicos:
-            for periodo in periodos_academicos:
-                sincronizar_calendario_chromadb(periodo.id, db)
-                await asyncio.sleep(1)
+        periodos = db.query(calendario_academico_model.PeriodoAcademico).all()
+        for periodo in periodos:
+            sincronizar_calendario_chromadb(periodo.id, db)
+            await asyncio.sleep(1)
+        print(f"[Background] {len(periodos)} periodos académicos vectorizados.")
 
-            print(f"Se vectorizaron {len(periodos_academicos)} periodos académicos exitosamente para el RAG.")
-        else:
-            print("La base de datos de Postgres está vacía. No hay periodos académicos para vectorizar.")
-
-    except Exception as e:
-        print(f"Error crítico durante el arranque o reconstrucción de ChromaDB: {e}")
+    except Exception as exc:
+        print(f"[Background] Error durante la vectorización: {exc}")
     finally:
         db.close()
-        
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- STARTUP: solo lo mínimo para que el puerto quede disponible de inmediato ---
+    print("Iniciando servidor: preparando base de datos...")
+
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
+    try:
+        seed_users(db)
+        seed_procesos(db)
+        seed_calendario(db)
+    except Exception as exc:
+        print(f"Error en seed: {exc}")
+    finally:
+        db.close()
+
+    # Lanzar la vectorización de ChromaDB en segundo plano sin bloquear el arranque
+    asyncio.create_task(_vectorizar_en_background())
+
+    print("Servidor listo. Vectorización de ChromaDB corriendo en segundo plano.")
+
     # --- LA APLICACIÓN ESTÁ CORRIENDO ---
-    yield 
-    
-    # --- LÓGICA DE APAGADO (SHUTDOWN) ---
+    yield
+
+    # --- SHUTDOWN ---
     print("Apagando el servidor...")
 
 
