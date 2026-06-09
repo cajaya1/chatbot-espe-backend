@@ -123,17 +123,22 @@ function PublicFooter() {
               <div className="mt-2 h-1 w-8 rounded-full bg-emerald-500" />
             </div>
             <div className="space-y-3">
-              <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-600/20 to-sky-400/10 p-4 ring-1 ring-sky-400/20 transition hover:from-sky-600/30">
+              <a
+                href="https://t.me/itiv_espe_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-600/20 to-sky-400/10 p-4 ring-1 ring-sky-400/20 transition hover:from-sky-600/30 hover:ring-sky-400/50 block"
+              >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-900/40">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-900/40 transition group-hover:bg-sky-400">
                     <Send className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white uppercase tracking-tight">Telegram TI</p>
-                    <p className="text-[11px] text-sky-300 font-medium">Próximamente</p>
+                    <p className="text-[11px] text-sky-300 font-medium">@itiv_espe_bot</p>
                   </div>
                 </div>
-              </div>
+              </a>
 
               <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600/20 to-emerald-400/10 p-4 ring-1 ring-emerald-400/20 transition hover:from-emerald-600/30">
                 <div className="flex items-center gap-4">
