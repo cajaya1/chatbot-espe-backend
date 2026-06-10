@@ -26,6 +26,29 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["telegram"])
 
+# URLs públicas para construir links absolutos de descarga en los mensajes.
+# RENDER_EXTERNAL_URL la define Render automáticamente en producción.
+_BACKEND_URL = (
+    os.getenv("BACKEND_PUBLIC_URL")
+    or os.getenv("RENDER_EXTERNAL_URL")
+    or "http://localhost:8000"
+).rstrip("/")
+_FRONTEND_URL = os.getenv(
+    "FRONTEND_PUBLIC_URL", "https://chatbot-espe-backend.vercel.app"
+).rstrip("/")
+
+
+def _link_anexo(ruta: str) -> str:
+    """Convierte la ruta relativa del anexo en una URL absoluta descargable."""
+    ruta = ruta.strip()
+    if ruta.startswith("http"):
+        return ruta
+    if ruta.startswith("/uploads/"):
+        filename = ruta.rsplit("/", 1)[-1]
+        return f"{_BACKEND_URL}/api/formatos/download/{filename}"
+    # Formatos del seed: viven en public/ del frontend
+    return f"{_FRONTEND_URL}{ruta if ruta.startswith('/') else '/' + ruta}"
+
 # ---------------------------------------------------------------------------
 # Estado de sesión en memoria: {chat_id -> {"codigo": str|None, "titulo": str|None}}
 # ---------------------------------------------------------------------------
@@ -153,8 +176,8 @@ async def _responder_pregunta(
     texto_fuentes = f"\n\n<b>Fuente:</b> {fuente_reglamento}"
 
     if proceso.ruta_anexo:
-        ruta = proceso.ruta_anexo.strip()
-        texto_fuentes += f"\n<b>Formato:</b> {ruta}"
+        url_anexo = _link_anexo(proceso.ruta_anexo)
+        texto_fuentes += f'\n<b>Formato:</b> <a href="{url_anexo}">Descargar Formato Oficial (Word)</a>'
 
     await _send_message(chat_id, respuesta + texto_fuentes)
 

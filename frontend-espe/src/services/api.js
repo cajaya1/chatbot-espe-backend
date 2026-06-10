@@ -100,6 +100,55 @@ export const procesoService = {
     const response = await api.post(`/api/procesos/${codigo}/rollback`)
     return response.data
   },
+  async uploadAnexo(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/api/formatos/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+}
+
+export const calendarService = {
+  async listarPeriodos() {
+    const response = await api.get('/api/calendarios')
+    return response.data
+  },
+  async getPeriodo(id) {
+    const response = await api.get(`/api/calendarios/${id}`)
+    return response.data
+  },
+  async crearPeriodo(payload) {
+    const response = await api.post('/api/calendarios', payload)
+    return response.data
+  },
+  async actualizarPeriodo(id, payload) {
+    const response = await api.put(`/api/calendarios/${id}`, payload)
+    return response.data
+  },
+  async eliminarPeriodo(id) {
+    await api.delete(`/api/calendarios/${id}`)
+  },
+}
+
+export const configService = {
+  async getCorreoSoporte() {
+    const response = await api.get('/api/config/correo_soporte')
+    return response.data
+  },
+  async setCorreoSoporte(correo) {
+    const response = await api.put('/api/config/correo_soporte', { correo })
+    return response.data
+  },
+  async getTelefonoSoporte() {
+    const response = await api.get('/api/config/telefono_soporte')
+    return response.data
+  },
+  async setTelefonoSoporte(telefono) {
+    const response = await api.put('/api/config/telefono_soporte', { telefono })
+    return response.data
+  },
 }
 
 export default api

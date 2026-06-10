@@ -77,7 +77,7 @@ function Home() {
             <div className="rounded-2xl bg-sky-700 p-8 text-white shadow-lg shadow-sky-200">
               <h3 className="text-lg font-bold">Aviso Estudiantil</h3>
               <p className="mt-3 text-sm text-sky-100">
-                Recuerda que todos los trámites deben seguir los plazos establecidos en el Calendario Académico vigente.
+                Recuerda que todos los procesos deben seguir los plazos establecidos en el Calendario Académico vigente.
               </p>
               <a
                 href="https://www.espe.edu.ec/calendario-academico/"
@@ -119,7 +119,7 @@ function Home() {
                     <FileText className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900">Documentación y Formatos</h3>
-                  <p className="mt-3 text-sm text-slate-500">Accede al centro de descargas para obtener las plantillas oficiales y anexos necesarios para tus trámites académicos.</p>
+                  <p className="mt-3 text-sm text-slate-500">Accede al centro de descargas para obtener las plantillas oficiales y anexos necesarios para tus procesos académicos.</p>
                 </div>
                 <div className="mt-8 flex items-center text-sm font-bold text-slate-600">
                   Ir a descargas <ArrowRight className="ml-2 h-4 w-4" />
@@ -134,7 +134,7 @@ function Home() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">Guía de Procesos Académicos</h3>
-                      <p className="mt-2 text-sm text-slate-500">Consulta los requisitos y pasos oficiales para los trámites de la Carrera ITIV.</p>
+                      <p className="mt-2 text-sm text-slate-500">Consulta los requisitos y pasos oficiales para los procesos de la Carrera ITIV.</p>
                     </div>
                   </div>
                   <Link

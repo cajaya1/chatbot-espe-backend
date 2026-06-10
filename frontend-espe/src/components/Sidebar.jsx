@@ -16,7 +16,7 @@ import {
 import useAuth from '../hooks/useAuth'
 
 const navigationItems = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Información General', path: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Gestión de procesos', path: '/admin/documents', icon: Settings2 },
   { label: 'Calendario Académico', path: '/admin/calendar', icon: CalendarDays },
   { label: 'Usuarios', path: '/admin/users', icon: Users, adminOnly: true },
@@ -146,9 +146,9 @@ function Sidebar({ open = true, onClose, mobile = false }) {
       
         <button
           onClick={handleLogout}
-          className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
+          className="flex w-full items-center gap-3 rounded-2xl bg-red-600/20 px-4 py-3 text-sm font-medium text-red-400 transition-all duration-200 hover:bg-red-600/30"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 transition-colors group-hover:bg-red-500/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20">
             <LogOut className="h-5 w-5" />
           </div>
           <span className="flex-1 text-left font-bold uppercase tracking-wider">Cerrar Sesión</span>

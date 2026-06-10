@@ -15,7 +15,7 @@ function Processes() {
 		},
 		{
 			title: 'Reconocimiento y/o homologación',
-			description: 'Consulta equivalencias, validación de asignaturas y documentos que respaldan el trámite.',
+			description: 'Consulta equivalencias, validación de asignaturas y documentos que respaldan el proceso.',
 			icon: BookOpen,
 		},
 		{
@@ -53,7 +53,7 @@ function Processes() {
 				</p>
 				<h2 className="mt-3 text-2xl font-semibold text-slate-900">Ruta de Atención Institucional</h2>
 				<p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-					Aquí tienes una vista general de los 8 procesos principales con orientación breve para ubicar rápidamente el trámite que necesitas.
+					Aquí tienes una vista general de los 8 procesos principales con orientación breve para ubicar rápidamente el proceso que necesitas.
 				</p>
 			</div>
 

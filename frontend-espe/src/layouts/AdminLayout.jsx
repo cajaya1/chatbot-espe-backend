@@ -1,11 +1,41 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import InstitutionalHeader from '../components/InstitutionalHeader'
+import useAuth from '../hooks/useAuth'
 
 function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const { logout } = useAuth()
+  const logoutTimerRef = useRef(null)
+
+  // Destruye la sesión cuando el usuario cierra la pestaña o la ventana del navegador.
+  // beforeunload no se dispara en navegaciones internas de React Router, solo en
+  // cierres reales o navegaciones externas al dominio.
+  useEffect(() => {
+    const clearSession = () => {
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_token')
+    }
+    window.addEventListener('beforeunload', clearSession)
+    return () => window.removeEventListener('beforeunload', clearSession)
+  }, [])
+
+  // Destruye la sesión cuando el usuario sale del portal administrativo por
+  // navegación interna de React Router (AdminLayout se desmonta).
+  // El setTimeout de 200 ms permite que React StrictMode (desarrollo) cancele
+  // el logout cuando remonta el componente de forma síncrona; una navegación
+  // real no produce remontaje, por lo que el timer dispara y cierra la sesión.
+  useEffect(() => {
+    if (logoutTimerRef.current) {
+      clearTimeout(logoutTimerRef.current)
+      logoutTimerRef.current = null
+    }
+    return () => {
+      logoutTimerRef.current = setTimeout(() => logout(), 200)
+    }
+  }, [logout])
 
   useEffect(() => {
     setSidebarOpen(false)

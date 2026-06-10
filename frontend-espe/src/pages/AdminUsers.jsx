@@ -26,6 +26,7 @@ const emptyForm = {
 
 function AdminUsers() {
   const { user: currentUser } = useAuth()
+  const isAdmin = currentUser?.role === 'admin'
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -194,20 +195,24 @@ function AdminUsers() {
                         >
                           <Eye className="h-4.5 w-4.5" />
                         </button>
-                        <button 
-                          onClick={() => openModal('edit', u)}
-                          className="rounded-xl p-2.5 text-slate-400 hover:bg-slate-100 hover:text-amber-600 transition-all"
-                          title="Editar"
-                        >
-                          <Edit3 className="h-4.5 w-4.5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(u.id)}
-                          className="rounded-xl p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4.5 w-4.5" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => openModal('edit', u)}
+                              className="rounded-xl p-2.5 text-slate-400 hover:bg-slate-100 hover:text-amber-600 transition-all"
+                              title="Editar"
+                            >
+                              <Edit3 className="h-4.5 w-4.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(u.id)}
+                              className="rounded-xl p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4.5 w-4.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -334,8 +339,8 @@ function AdminUsers() {
                 >
                   {modalMode === 'view' ? 'Cerrar' : 'Cancelar'}
                 </button>
-                {modalMode !== 'view' && (
-                  <button 
+                {modalMode !== 'view' && (modalMode === 'create' || isAdmin) && (
+                  <button
                     type="submit"
                     className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-sky-200 hover:bg-sky-700 transition-all active:scale-95"
                   >

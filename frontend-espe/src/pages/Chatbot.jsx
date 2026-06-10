@@ -2,6 +2,7 @@ import { Bot, Send, Sparkles, MessageCircleMore, Info, Trash2, Loader, X } from 
 import { useState, useEffect, useRef } from 'react'
 import { chatService, procesoService } from '../services/api'
 import toast from 'react-hot-toast'
+import { downloadAnexo } from '../utils/anexos'
 
 
 
@@ -10,9 +11,27 @@ const renderFuente = (fuenteString) => {
   // Busca el patrón [Texto del enlace](URL del enlace)
   const match = fuenteString.match(/\[(.*?)\]\((.*?)\)/);
   if (match) {
+    const url = match[2]
+
+    // Rutas locales de anexos (/uploads/... vive en el backend, /formatos/... en
+    // public/ del frontend): descargar con el helper en lugar de navegar, porque
+    // un href relativo al frontend caería en la ruta comodín de React Router.
+    if (url.startsWith('/uploads/') || url.startsWith('/formatos/')) {
+      return (
+        <button
+          type="button"
+          onClick={() => downloadAnexo(url)}
+          className="text-sky-600 hover:text-sky-800 underline transition-colors"
+        >
+          {match[1]}
+        </button>
+      );
+    }
+
+    // Links externos (reglamentos, etc.): comportamiento normal
     return (
       <a
-        href={match[2]}
+        href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="text-sky-600 hover:text-sky-800 underline transition-colors"
@@ -26,7 +45,7 @@ const renderFuente = (fuenteString) => {
 };
 
 function Chatbot() {
-  const welcomeMessage = 'Hola 👋 Soy el asistente virtual académico de la carrera de Tecnologías de la Información en Línea (ITIV) de la ESPE. ¿En qué trámite puedo ayudarte hoy?'
+  const welcomeMessage = 'Hola 👋 Soy el asistente virtual académico de la carrera de Tecnologías de la Información en Línea (ITIV) de la ESPE. ¿En qué proceso puedo ayudarte hoy?'
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -122,7 +141,7 @@ function Chatbot() {
   const handleSelectProceso = (proceso) => {
     setSelectedProceso(proceso)
     const pasos = (proceso.flujo_pasos || []).map((p, index) => `${index + 1}. ${p}`).join('\n')
-    const contenido = `Has seleccionado el proceso de ${proceso.titulo}.\n\nPasos generales:\n${pasos}\n\n¿Tienes alguna duda específica sobre este trámite?`
+    const contenido = `Has seleccionado el proceso de ${proceso.titulo}.\n\nPasos generales:\n${pasos}\n\n¿Tienes alguna duda específica sobre este proceso?`
     setMessages((prev) => [...prev, { role: 'assistant', content: contenido }])
   }
 
@@ -139,7 +158,7 @@ function Chatbot() {
 
           <div className="mt-8 space-y-6">
             <p className="text-xs leading-5 text-slate-600">
-              Selecciona un trámite para ver sus pasos y comenzar la consulta.
+              Selecciona un proceso para ver sus pasos y comenzar la consulta.
             </p>
 
             <div>
@@ -163,7 +182,7 @@ function Chatbot() {
                 <span className="text-xs font-bold uppercase">Tips de uso</span>
               </div>
               <p className="mt-2 text-[11px] leading-4 text-sky-100">
-                Sé específico con los nombres de los trámites para obtener mejores respuestas.
+                Sé específico con los nombres de los procesos para obtener mejores respuestas.
               </p>
             </div>
           </div>
@@ -280,7 +299,7 @@ function Chatbot() {
                       setSelectedProceso(null);
                       setMessages(prev => [...prev, { 
                         role: 'assistant', 
-                        content: 'He quitado el filtro de trámite. ¿En qué otro proceso te puedo ayudar?',
+                        content: 'He quitado el filtro de proceso. ¿En qué otro proceso te puedo ayudar?',
                         showOptions: true 
                       }]);
                     }}
@@ -297,7 +316,7 @@ function Chatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !loading && handleSend()}
-                placeholder={selectedProceso ? 'Escribe tu duda académica sobre este trámite...' : 'Selecciona un trámite de la lista para comenzar...'}
+                placeholder={selectedProceso ? 'Escribe tu duda académica sobre este proceso...' : 'Selecciona un proceso de la lista para comenzar...'}
                 disabled={loading || !selectedProceso}
                 className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-6 pr-14 text-sm text-slate-700 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all placeholder:text-slate-400 disabled:bg-slate-100"
               />

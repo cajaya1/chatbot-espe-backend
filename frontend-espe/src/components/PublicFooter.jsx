@@ -1,11 +1,25 @@
-import { Mail, PhoneCall, MessageSquare, Send, MessageCircle, ChevronRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Mail, PhoneCall, Send, MessageCircle, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
+import { configService } from '../services/api'
 
 function PublicFooter() {
   const currentYear = new Date().getFullYear()
-  const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
+  const [supportEmail, setSupportEmail] = useState(
+    import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
+  )
+  const [supportPhone, setSupportPhone] = useState('(02) 3989-400')
+
+  useEffect(() => {
+    configService.getCorreoSoporte()
+      .then(data => setSupportEmail(data.correo))
+      .catch(() => {})
+    configService.getTelefonoSoporte()
+      .then(data => setSupportPhone(data.telefono))
+      .catch(() => {})
+  }, [])
 
   return (
     <footer className="border-t border-sky-500/10 bg-[#061c2c] text-white">
@@ -108,7 +122,7 @@ function PublicFooter() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/70">Teléfono</p>
-                  <p className="text-sm text-white">(02) 3989-400</p>
+                  <p className="text-sm text-white">{supportPhone}</p>
                 </div>
               </div>
             </div>

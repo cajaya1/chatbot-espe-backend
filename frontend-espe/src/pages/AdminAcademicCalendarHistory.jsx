@@ -1,52 +1,62 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Edit3, Eye, Plus, Trash2 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import {
-  deleteAcademicCalendar,
-  formatAcademicPeriodLabel,
-  isPastAcademicCalendar,
-  loadAcademicCalendars,
-} from '../utils/academicCalendarStore'
+import { calendarService } from '../services/api'
+import useAuth from '../hooks/useAuth'
+
+const today = new Date().toISOString().substring(0, 10)
+
+const isPast = (fechaFin) => !!fechaFin && fechaFin < today
 
 const formatDate = (value) => {
   if (!value) return 'Sin fecha'
   const parsed = new Date(`${value}T00:00:00`)
   if (Number.isNaN(parsed.getTime())) return value
-
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(parsed)
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(parsed)
 }
 
 function AdminAcademicCalendarHistory() {
-  const navigate = useNavigate()
-  const [calendars, setCalendars] = useState([])
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  const [periodos, setPeriodos] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setCalendars(loadAcademicCalendars())
-  }, [])
-
-  const sortedCalendars = useMemo(
-    () => [...calendars].sort((left, right) => right.fecha_fin_periodo.localeCompare(left.fecha_fin_periodo)),
-    [calendars]
-  )
-
-  const refreshCalendars = () => {
-    setCalendars(loadAcademicCalendars())
+  const fetchPeriodos = async () => {
+    setLoading(true)
+    try {
+      const data = await calendarService.listarPeriodos()
+      setPeriodos(data)
+    } catch {
+      toast.error('No se pudieron cargar los periodos académicos')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDelete = (calendar) => {
-    if (isPastAcademicCalendar(calendar.fecha_fin_periodo)) return
+  useEffect(() => {
+    fetchPeriodos()
+  }, [])
 
-    const confirmed = window.confirm(`¿Eliminar el periodo ${calendar.nombre_periodo}?`)
+  const sortedPeriodos = useMemo(
+    () => [...periodos].sort((a, b) => b.fecha_fin_periodo.localeCompare(a.fecha_fin_periodo)),
+    [periodos]
+  )
+
+  const handleDelete = async (periodo) => {
+    if (isPast(periodo.fecha_fin_periodo)) return
+
+    const confirmed = window.confirm(`¿Eliminar el periodo "${periodo.nombre}"?`)
     if (!confirmed) return
 
-    deleteAcademicCalendar(calendar.id)
-    refreshCalendars()
-    toast.success('Periodo eliminado correctamente')
+    try {
+      await calendarService.eliminarPeriodo(periodo.id)
+      toast.success('Periodo eliminado correctamente')
+      fetchPeriodos()
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'No se pudo eliminar el periodo'
+      toast.error(msg)
+    }
   }
 
   return (
@@ -59,7 +69,7 @@ function AdminAcademicCalendarHistory() {
           </div>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">Historial de periodos</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Consulta los periodos registrados, revisa sus actividades y gestiona la edición solo cuando el periodo siga vigente.
+            Consulta los periodos registrados y gestiona la edición solo cuando el periodo siga vigente.
           </p>
         </div>
 
@@ -85,65 +95,79 @@ function AdminAcademicCalendarHistory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {sortedCalendars.map((calendar) => {
-                const isPast = isPastAcademicCalendar(calendar.fecha_fin_periodo)
-                return (
-                  <tr key={calendar.id} className="hover:bg-slate-50/80">
-                    <td className="px-6 py-5 align-top">
-                      <div className="font-semibold text-slate-900">{formatAcademicPeriodLabel(calendar)}</div>
-                      <div className="mt-1 text-xs text-slate-500">{calendar.nombre_periodo}</div>
-                    </td>
-                    <td className="px-6 py-5 align-top text-sm text-slate-700">{formatDate(calendar.fecha_fin_periodo)}</td>
-                    <td className="px-6 py-5 align-top text-sm text-slate-700">{calendar.actividades?.length || 0} actividades</td>
-                    <td className="px-6 py-5 align-top">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                          isPast ? 'bg-slate-100 text-slate-600' : 'bg-emerald-50 text-emerald-700'
-                        }`}
-                      >
-                        {isPast ? 'Pasado, solo visualización' : 'Vigente'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 align-top">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Link
-                          to={`/admin/calendar/${calendar.id}`}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Ver detalles
-                        </Link>
-                        {!isPast ? (
-                          <>
-                            <Link
-                              to={`/admin/calendar/${calendar.id}/edit`}
-                              className="inline-flex items-center gap-2 rounded-xl border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                              Editar
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(calendar)}
-                              className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Eliminar
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-
-              {!sortedCalendars.length ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
+                    Cargando periodos...
+                  </td>
+                </tr>
+              ) : sortedPeriodos.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
                     No hay periodos registrados todavía.
                   </td>
                 </tr>
-              ) : null}
+              ) : (
+                sortedPeriodos.map((periodo) => {
+                  const pasado = isPast(periodo.fecha_fin_periodo)
+                  return (
+                    <tr key={periodo.id} className="hover:bg-slate-50/80">
+                      <td className="px-6 py-5 align-top">
+                        <div className="font-semibold text-slate-900">{periodo.nombre}</div>
+                        {periodo.es_actual && (
+                          <span className="mt-1 inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700">
+                            Actual
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-5 align-top text-sm text-slate-700">
+                        {formatDate(periodo.fecha_fin_periodo)}
+                      </td>
+                      <td className="px-6 py-5 align-top text-sm text-slate-700">
+                        {periodo.actividades?.length || 0} actividades
+                      </td>
+                      <td className="px-6 py-5 align-top">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+                            pasado ? 'bg-slate-100 text-slate-600' : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {pasado ? 'Pasado' : 'Vigente'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 align-top">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Link
+                            to={`/admin/calendar/${periodo.id}`}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Ver detalles
+                          </Link>
+                          {!pasado && isAdmin && (
+                            <>
+                              <Link
+                                to={`/admin/calendar/${periodo.id}/edit`}
+                                className="inline-flex items-center gap-2 rounded-xl border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                Editar
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(periodo)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Eliminar
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -3,11 +3,13 @@ import {
   AlertTriangle,
   BadgeCheck,
   CheckCircle2,
+  Download,
   Eye,
   FileText,
   Filter,
   Hash,
   Layers,
+  Paperclip,
   Plus,
   RotateCcw,
   Search,
@@ -16,6 +18,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { procesoService } from '../services/api'
+import useAuth from '../hooks/useAuth'
+import { downloadAnexo, getAnexoDisplayName } from '../utils/anexos'
 
 const emptyForm = {
   codigo_proceso: '',
@@ -27,6 +31,8 @@ const emptyForm = {
 }
 
 function AdminDocuments() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [procesos, setProcesos] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -40,6 +46,8 @@ function AdminDocuments() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [procesoToDelete, setProcesoToDelete] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'active', 'inactive'
+  const [anexoFile, setAnexoFile] = useState(null)
+
 
   const fetchProcesos = async () => {
     setLoading(true)
@@ -104,6 +112,7 @@ function AdminDocuments() {
         codigo_proceso: newCode,
       })
     }
+    setAnexoFile(null)
     setIsModalOpen(true)
   }
 
@@ -163,13 +172,24 @@ function AdminDocuments() {
       }
     }
 
+    let rutaAnexo = formData.ruta_anexo?.trim() || null
+    if (anexoFile) {
+      try {
+        const uploadData = await procesoService.uploadAnexo(anexoFile)
+        rutaAnexo = uploadData.url
+      } catch {
+        toast.error('No se pudo subir el archivo. Intenta de nuevo.')
+        return
+      }
+    }
+
     const payload = {
       codigo_proceso: codigo || null,
       titulo,
       activo: formData.activo,
       flujo_pasos: pasos,
       contexto_legal: contexto,
-      ruta_anexo: formData.ruta_anexo?.trim() || null,
+      ruta_anexo: rutaAnexo,
     }
 
     const savePromise = modalMode === 'create'
@@ -177,7 +197,7 @@ function AdminDocuments() {
       : procesoService.updateProceso(selectedProceso.codigo_proceso, payload)
 
     toast.promise(savePromise, {
-      loading: modalMode === 'create' ? 'Creando nuevo trámite...' : 'Actualizando y versionando...',
+      loading: modalMode === 'create' ? 'Creando nuevo proceso...' : 'Actualizando y versionando...',
       success: (data) => {
         fetchProcesos() // Actualiza la lista de procesos (recarga la data)
         setIsModalOpen(false) // Cierra el modal automáticamente
@@ -214,7 +234,7 @@ function AdminDocuments() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900 line-clamp-1">¿Deshacer versión {proceso.version}?</p>
-            <p className="text-xs text-slate-500">Se restaurará la versión {proceso.version - 1} de este trámite.</p>
+            <p className="text-xs text-slate-500">Se restaurará la versión {proceso.version - 1} de este proceso.</p>
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-50 pt-2">
@@ -252,11 +272,8 @@ function AdminDocuments() {
       loading: 'Regresando a la versión anterior...',
       success: () => {
         setIsHistoryOpen(false)
-        // Recargar la página completa para asegurar estado limpio
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-        return '¡Versión eliminada y restaurada la anterior!'
+        fetchProcesos()
+        return '¡Se ha revertido con éxito! Se restauró la versión anterior.'
       },
       error: (error) => error.response?.data?.detail || 'No se pudo regresar a la versión anterior',
     })
@@ -267,14 +284,14 @@ function AdminDocuments() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Gestión de Procesos Académicos</h2>
-          <p className="mt-1 text-sm text-slate-500">Crea, versiona y publica los trámites vigentes para el chatbot.</p>
+          <p className="mt-1 text-sm text-slate-500">Crea, versiona y publica los procesos vigentes para el chatbot.</p>
         </div>
         <button
           onClick={() => openModal('create')}
           className="flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 active:scale-95"
         >
           <Plus className="h-5 w-5" />
-          <span>Nuevo trámite</span>
+          <span>Nuevo proceso</span>
         </button>
       </div>
 
@@ -371,24 +388,28 @@ function AdminDocuments() {
                 >
                   <Eye className="h-4 w-4" />
                 </button>
-                <button
-                  onClick={() => openModal('edit', item)}
-                  className="rounded-xl border border-slate-100 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
-                >
-                  Editar / Versionar
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => openModal('edit', item)}
+                    className="rounded-xl border border-slate-100 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
+                  >
+                    Editar / Versionar
+                  </button>
+                )}
                 <button
                   onClick={() => openHistory(item)}
                   className="rounded-xl border border-slate-100 bg-white px-4 py-2 text-xs font-bold text-slate-500 transition hover:border-slate-200 hover:text-slate-700"
                 >
                   Ver historial
                 </button>
-                <button
-                  onClick={() => handleDelete(item)}
-                  className="rounded-xl border border-red-50 p-2 text-red-300 transition hover:border-red-200 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="rounded-xl border border-red-50 p-2 text-red-300 transition hover:border-red-200 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -410,7 +431,7 @@ function AdminDocuments() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">
-                  {modalMode === 'create' ? 'Crear nuevo trámite' : modalMode === 'view' ? 'Detalles del trámite' : 'Actualizar trámite'}
+                  {modalMode === 'create' ? 'Crear nuevo proceso' : modalMode === 'view' ? 'Detalles del proceso' : 'Actualizar proceso'}
                 </h3>
                 <p className="text-xs font-medium text-slate-500">
                   {modalMode === 'view' ? 'Vista de lectura' : 'Los cambios generan una nueva version vigente.'}
@@ -452,15 +473,70 @@ function AdminDocuments() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-bold text-slate-700">Ruta de anexo (Word)</label>
-                  <input
-                    type="text"
-                    value={formData.ruta_anexo}
-                    readOnly={modalMode === 'view'}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, ruta_anexo: e.target.value }))}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-sky-500 focus:bg-white read-only:opacity-70"
-                    placeholder="/formatos/ret-voluntario.docx"
-                  />
+                  <label className="text-sm font-bold text-slate-700">Formato Word adjunto</label>
+                  <div className="mt-2 space-y-2">
+                    {/* Archivo existente */}
+                    {formData.ruta_anexo && !anexoFile && (
+                      <div className="flex items-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-3 py-2.5">
+                        <Paperclip className="h-4 w-4 shrink-0 text-sky-500" />
+                        <span className="flex-1 truncate text-xs font-semibold text-sky-700">
+                          {getAnexoDisplayName(formData.ruta_anexo)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => downloadAnexo(formData.ruta_anexo)}
+                          title="Descargar formato"
+                          className="rounded-lg p-1 text-sky-500 transition hover:bg-sky-100"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </button>
+                        {modalMode !== 'view' && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, ruta_anexo: '' }))}
+                            title="Eliminar formato adjunto"
+                            className="rounded-lg p-1 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {/* Nuevo archivo seleccionado (previsualización) */}
+                    {anexoFile && (
+                      <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+                        <Paperclip className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <span className="flex-1 truncate text-xs font-semibold text-emerald-700">
+                          {anexoFile.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAnexoFile(null)}
+                          className="rounded-lg p-1 text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    {/* Input de archivo (solo en modo editar/crear) */}
+                    {modalMode !== 'view' && !anexoFile && (
+                      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 transition hover:border-sky-300 hover:text-sky-600">
+                        <Paperclip className="h-4 w-4 shrink-0" />
+                        <span className="text-xs">
+                          {formData.ruta_anexo ? 'Reemplazar archivo…' : 'Adjuntar formato Word…'}
+                        </span>
+                        <input
+                          type="file"
+                          accept=".doc,.docx"
+                          className="hidden"
+                          onChange={(e) => setAnexoFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    )}
+                    {modalMode === 'view' && !formData.ruta_anexo && (
+                      <p className="text-xs text-slate-400 italic">Sin formato adjunto</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -481,9 +557,12 @@ function AdminDocuments() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-bold text-slate-700">Flujo de pasos</label>
-                  <div className="mt-2 space-y-3">
+                  <div className="mt-2 max-h-56 overflow-y-auto space-y-3 pr-1">
                     {formData.flujo_pasos.map((paso, index) => (
                       <div key={`paso-${index}`} className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+                          {index + 1}
+                        </span>
                         <input
                           type="text"
                           value={paso}
@@ -503,30 +582,31 @@ function AdminDocuments() {
                         )}
                       </div>
                     ))}
-                    {modalMode !== 'view' && (
-                      <button
-                        type="button"
-                        onClick={addPaso}
-                        className="w-full rounded-2xl border border-dashed border-slate-200 py-2.5 text-xs font-bold text-slate-500 hover:border-sky-300 hover:text-sky-600"
-                      >
-                        + Agregar paso
-                      </button>
-                    )}
                   </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold text-slate-700">Texto legal (contexto para IA)</label>
-                  <textarea
-                    value={formData.contexto_legal}
-                    readOnly={modalMode === 'view'}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, contexto_legal: e.target.value }))}
-                    rows={7}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-sky-500 focus:bg-white read-only:opacity-70"
-                    placeholder="Pega aqui el articulado o resumen normativo vigente."
-                  />
+                  {modalMode !== 'view' && (
+                    <button
+                      type="button"
+                      onClick={addPaso}
+                      className="mt-2 w-full rounded-2xl border border-dashed border-slate-200 py-2.5 text-xs font-bold text-slate-500 hover:border-sky-300 hover:text-sky-600"
+                    >
+                      + Agregar paso
+                    </button>
+                  )}
                 </div>
               </div>
+            </div>
+
+            {/* Contexto legal — ancho completo fuera del grid de dos columnas */}
+            <div className="mt-4">
+              <label className="text-sm font-bold text-slate-700">Texto legal (contexto para IA)</label>
+              <textarea
+                value={formData.contexto_legal}
+                readOnly={modalMode === 'view'}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contexto_legal: e.target.value }))}
+                rows={6}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-sky-500 focus:bg-white read-only:opacity-70"
+                placeholder="Pega aquí el articulado o resumen normativo vigente."
+              />
             </div>
 
             <div className="pt-6 flex flex-col gap-3 sm:flex-row">
@@ -536,7 +616,7 @@ function AdminDocuments() {
               >
                 {modalMode === 'view' ? 'Cerrar' : 'Cancelar'}
               </button>
-              {modalMode !== 'view' && (
+              {modalMode !== 'view' && (modalMode === 'create' || isAdmin) && (
                 <button
                   onClick={handleSubmit}
                   className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-sky-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-sky-200 hover:bg-sky-700 transition-all active:scale-95"
@@ -589,7 +669,7 @@ function AdminDocuments() {
                         <p className="font-semibold text-slate-900">{item.titulo}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {item.es_actual && item.version > 1 && (
+                        {isAdmin && item.es_actual && item.version > 1 && (
                           <button
                             onClick={() => handleRollback(item)}
                             title="Eliminar esta versión y volver a la anterior"

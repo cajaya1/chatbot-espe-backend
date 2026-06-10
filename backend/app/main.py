@@ -6,6 +6,7 @@ except ImportError:
     pass
 
 import os
+import pathlib
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import asyncio
@@ -14,6 +15,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.database import Base, SessionLocal, engine
 from app.core.seed import seed_procesos, seed_users, seed_calendario
@@ -21,6 +23,7 @@ from app.models import user as user_model  # noqa: F401
 from app.models import document as document_model  # noqa: F401
 from app.models import proceso_academico as proceso_academico_model  # noqa: F401
 from app.models import calendario_academico as calendario_academico_model  # noqa: F401
+from app.models import configuracion as configuracion_model  # noqa: F401
 from app.routes.documents import router as documents_router
 from app.routes.chat import router as chat_router
 from app.routes.auth import router as auth_router
@@ -28,6 +31,8 @@ from app.routes.users import router as users_router
 from app.routes.procesos import router as procesos_router
 from app.routes.calendarios import router as calendarios_router
 from app.routes.telegram import router as telegram_router
+from app.routes.config import router as config_router
+from app.routes.formatos_upload import router as formatos_upload_router
 from app.services.chroma_service import ensure_collection, sincronizar_proceso_chromadb, CLIENT
 from app.services.chroma_service import sincronizar_calendario_chromadb
 
@@ -137,6 +142,13 @@ app.include_router(users_router)
 app.include_router(procesos_router)
 app.include_router(calendarios_router)
 app.include_router(telegram_router)
+app.include_router(config_router)
+app.include_router(formatos_upload_router)
+
+# Servir archivos subidos (Word docs) de forma estática
+_uploads_dir = pathlib.Path(__file__).parent.parent / "uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 
 @app.get("/")
