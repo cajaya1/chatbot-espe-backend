@@ -37,7 +37,7 @@ const renderFuente = (fuenteString) => {
 
 function FloatingChat() {
   const { isChatOpen, toggleChat, closeChat } = useChat()
-  const welcomeMessage = 'Hola 👋 Soy Carlos, tu asistente virtual académico. ¿En qué proceso puedo ayudarte hoy?'
+  const welcomeMessage = 'Hola 👋 Soy Eva, tu asistente virtual académico. ¿En qué proceso puedo ayudarte hoy?'
   
   const [messages, setMessages] = useState([
     {
@@ -136,7 +136,7 @@ function FloatingChat() {
                 <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sky-700 bg-green-500" />
               </div>
               <div>
-                <h3 className="text-sm font-bold">Carlos - Asistente ESPE</h3>
+                <h3 className="text-sm font-bold">Eva - Asistente Virtual</h3>
                 <p className="text-[10px] opacity-80 uppercase tracking-wider font-medium">En línea</p>
               </div>
             </div>
@@ -160,52 +160,72 @@ function FloatingChat() {
           {/* Mensajes */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto bg-slate-50/50 p-4 space-y-4">
             {messages.map((m, idx) => (
-              <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+              <div key={idx} className={`flex w-full items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Avatar del Bot o Usuario */}
+                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white shadow-sm ring-2 ring-white transition-all ${
                   m.role === 'user' 
-                    ? 'bg-sky-700 text-white rounded-tr-none' 
-                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'
+                    ? 'bg-slate-800' 
+                    : 'bg-sky-700'
                 }`}>
-                  <p className="whitespace-pre-line">{m.content}</p>
-                  
-                  {m.showOptions && (
-                    <div className="mt-3 grid gap-2">
-                       <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Selecciona un proceso:</p>
-                      {procesosLoading ? (
-                        <Loader className="h-3 w-3 animate-spin text-sky-600" />
-                      ) : (
-                        procesos.map((p) => (
-                          <button
-                            key={p.codigo_proceso}
-                            onClick={() => handleSelectProceso(p)}
-                            className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                          >
-                            {p.titulo}
-                          </button>
-                        ))
-                      )}
-                    </div>
+                  {m.role === 'user' ? (
+                    <MessageCircleMore className="h-4 w-4" />
+                  ) : (
+                    <Bot className="h-4 w-4" />
                   )}
+                </div>
 
-                  {m.fuentes && m.fuentes.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 text-[11px]">
-                      <p className="font-bold text-slate-500 mb-1">Fuentes:</p>
-                      {m.fuentes.map((f, i) => (
-                        <div key={i} className="flex gap-1">
-                          <span className="text-sky-500">•</span>
-                          {renderFuente(f)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className={`group relative max-w-[80%] space-y-2`}>
+                  <div className={`rounded-2xl px-3 py-2 text-sm shadow-sm transition-all ${
+                    m.role === 'user' 
+                      ? 'bg-sky-700 text-white rounded-br-none' 
+                      : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
+                  }`}>
+                    <p className="whitespace-pre-line leading-relaxed">{m.content}</p>
+                    
+                    {m.showOptions && (
+                      <div className="mt-3 grid gap-1">
+                        <p className={`text-[10px] font-bold uppercase mb-1 ${m.role === 'user' ? 'text-sky-200' : 'text-slate-400'}`}>
+                          Selecciona un proceso:
+                        </p>
+                        {procesosLoading ? (
+                          <Loader className="h-3 w-3 animate-spin text-sky-600" />
+                        ) : (
+                          procesos.map((p) => (
+                            <button
+                              key={p.codigo_proceso}
+                              onClick={() => handleSelectProceso(p)}
+                              className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 active:scale-95"
+                            >
+                              {p.titulo}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {m.fuentes && m.fuentes.length > 0 && (
+                      <div className={`mt-3 pt-3 border-t text-[11px] ${m.role === 'user' ? 'border-sky-600/50 text-sky-100' : 'border-slate-100 text-slate-500'}`}>
+                        <p className="font-bold mb-1 opacity-80 uppercase tracking-tighter">Fuentes Institucionales:</p>
+                        {m.fuentes.map((f, i) => (
+                          <div key={i} className="flex gap-2 items-start mt-1">
+                            <span className="text-sky-500 font-bold">•</span>
+                            <div className="flex-1 italic">{renderFuente(f)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex justify-start">
-                <div className="max-w-[85%] rounded-2xl bg-white border border-slate-100 px-4 py-3 text-sm text-slate-500 rounded-tl-none flex items-center gap-2">
-                  <Loader className="h-4 w-4 animate-spin" />
-                  Escribiendo...
+              <div className="flex w-full items-end gap-2 flex-row">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sky-700 text-white shadow-sm ring-2 ring-white">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div className="max-w-[75%] rounded-2xl bg-white border border-slate-100 px-4 py-3 text-sm text-slate-500 rounded-bl-none flex items-center gap-3 shadow-sm italic">
+                  <Loader className="h-4 w-4 animate-spin text-sky-600" />
+                  Carlos está escribiendo...
                 </div>
               </div>
             )}
@@ -214,7 +234,7 @@ function FloatingChat() {
           {/* Input */}
           <footer className="border-t border-slate-100 bg-white p-4">
              {selectedProceso && (
-              <div className="mb-2 flex items-center justify-between rounded-lg bg-sky-50 px-3 py-1.5 border border-sky-100">
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-sky-50 px-3 py-1 border border-sky-100">
                 <span className="text-[9px] font-bold text-sky-700 uppercase truncate">Consultando: {selectedProceso.titulo}</span>
                 <button onClick={() => setSelectedProceso(null)} className="text-sky-400 hover:text-sky-600">
                   <X className="h-3 w-3" />

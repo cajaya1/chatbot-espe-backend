@@ -63,35 +63,35 @@ function Formats() {
           <p className="text-slate-500">Cargando formatos...</p>
         </div>
       ) : (
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-12 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredItems.map((item) => (
             <article
               key={item.id}
-              className="group flex flex-col rounded-3xl border border-slate-100 bg-white p-6 transition-all hover:border-sky-100 hover:shadow-xl hover:shadow-sky-500/5"
+              className="group flex flex-col rounded-3xl border border-slate-100 bg-white p-5 transition-all hover:border-sky-100 hover:shadow-xl hover:shadow-sky-500/5"
             >
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 transition group-hover:bg-sky-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-sky-200">
-                  <FileText className="h-6 w-6" />
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 transition group-hover:bg-sky-600 group-hover:text-white">
+                  <FileText className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-100/50">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100/50">
                   {item.codigo_proceso}
                 </span>
               </div>
 
               <div className="flex-1">
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition leading-snug">
+                <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition leading-snug">
                   {item.titulo}
                 </h3>
-                <p className="mt-2 truncate text-xs text-slate-400" title={getAnexoDisplayName(item.ruta_anexo)}>
+                <p className="mt-1 truncate text-[10px] text-slate-400" title={getAnexoDisplayName(item.ruta_anexo)}>
                   {getAnexoDisplayName(item.ruta_anexo)}
                 </p>
               </div>
 
               <button
                 onClick={() => downloadAnexo(item.ruta_anexo)}
-                className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-semibold text-white transition hover:bg-sky-700"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-3.3 w-3.3" />
                 Descargar Formato
               </button>
             </article>

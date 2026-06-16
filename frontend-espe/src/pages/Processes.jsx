@@ -59,27 +59,27 @@ function Processes() {
 				</p>
 			</div>
 
-			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+			<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-2">
 				{processes.map((process) => {
 					const Icon = process.icon
 
 					return (
-						<article key={process.title} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-6">
-							<div className="flex items-start gap-4">
-								<div className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+						<article key={process.title} className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-5">
+							<div className="flex items-start gap-3">
+								<div className="flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
 									<Icon className="h-5 w-5" />
 								</div>
 								<div className="min-w-0 flex-1">
-									<h3 className="text-lg font-semibold text-slate-900">{process.title}</h3>
-									<p className="mt-2 text-sm leading-6 text-slate-600">{process.description}</p>
+									<h3 className="text-base font-semibold text-slate-900">{process.title}</h3>
+									<p className="mt-1 text-xs leading-5 text-slate-600">{process.description}</p>
 								</div>
 							</div>
 							<button 
 								onClick={openChat}
-								className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800"
+								className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-sky-700 hover:text-sky-800"
 							>
 								Consultar proceso
-								<ArrowRight className="h-4 w-4" />
+								<ArrowRight className="h-3 w-3" />
 							</button>
 						</article>
 					)
