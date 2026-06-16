@@ -61,7 +61,7 @@ La base vectorial para archivos se crea automáticamente en `backend\institucion
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate
+source venv/Scripts/activate
 pip install -r requirements.txt
 copy .env.example .env
 uvicorn app.main:app --reload --env-file .env

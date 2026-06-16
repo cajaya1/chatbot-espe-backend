@@ -34,13 +34,7 @@ function Profile() {
               {roleLabel}
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-2 rounded-2xl bg-white/5 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10 active:scale-95"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar Sesión
-          </button>
+          
         </div>
       </div>
 

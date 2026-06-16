@@ -15,4 +15,4 @@ sentence-transformers==5.5.1
 sqlalchemy==2.0.50
 uvicorn[standard]==0.47.0
 passlib[bcrypt]
-pysqlite3-binary==0.5.2.post3
+#pysqlite3-binary==0.5.2.post3

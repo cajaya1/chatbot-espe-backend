@@ -34,7 +34,7 @@ function Home() {
               to="/formatos-anexos"
               className="flex h-12 items-center justify-center rounded-xl bg-white/10 px-8 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20 active:scale-95 border border-white/20"
             >
-              Documentación
+              Anexos
             </Link>
           </div>
         </div>
@@ -93,58 +93,43 @@ function Home() {
 
           {/* Right Column: Services Grid */}
           <div className="lg:col-span-8">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Link
-                to="/asistente-virtual"
-                className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-sky-500 hover:shadow-md"
-              >
-                <div>
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-700 group-hover:bg-sky-600 group-hover:text-white transition">
-                    <Bot className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900">Asistente Virtual (IA)</h3>
-                  <p className="mt-3 text-sm text-slate-500">Resuelve dudas sobre el reglamento y procesos de forma inmediata con nuestro agente de inteligencia artificial especializado.</p>
-                </div>
-                <div className="mt-8 flex items-center text-sm font-bold text-sky-600">
-                  Iniciar consulta <ArrowRight className="ml-2 h-4 w-4" />
-                </div>
-              </Link>
-
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              
+              {/* Anexos Card */}
               <Link
                 to="/formatos-anexos"
-                className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-sky-500 hover:shadow-md"
+                className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:border-sky-500 hover:shadow-xl hover:shadow-sky-500/10 sm:col-span-2"
               >
-                <div>
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-700 group-hover:bg-slate-900 group-hover:text-white transition">
-                    <FileText className="h-6 w-6" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                  <div className="flex items-start gap-6">
+                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
+                      <FileText className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-900">Formatos y Anexos</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-500 max-w-xl">Descarga las plantillas oficiales y documentos necesarios para tus solicitudes académicas en un solo lugar.</p>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900">Documentación y Formatos</h3>
-                  <p className="mt-3 text-sm text-slate-500">Accede al centro de descargas para obtener las plantillas oficiales y anexos necesarios para tus procesos académicos.</p>
-                </div>
-                <div className="mt-8 flex items-center text-sm font-bold text-slate-600">
-                  Ir a descargas <ArrowRight className="ml-2 h-4 w-4" />
+                  <div className="flex h-12 items-center justify-center rounded-xl bg-slate-100 px-8 text-sm font-bold text-slate-700 transition group-hover:bg-sky-600 group-hover:text-white">
+                    Ver descargas <ArrowRight className="ml-2 h-4 w-4" />
+                  </div>
                 </div>
               </Link>
 
-              <div className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-sky-500 hover:shadow-md sm:col-span-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">
-                      <GraduationCap className="h-6 w-6" />
+              {/* Guía de Procesos (Full Width) */}
+              <div className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-1 shadow-sm transition-all hover:border-green-500 sm:col-span-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                  <div className="flex items-start gap-6">
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-green-50 text-green-700">
+                      <GraduationCap className="h-7 w-7" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">Guía de Procesos Académicos</h3>
-                      <p className="mt-2 text-sm text-slate-500">Consulta los requisitos y pasos oficiales para los procesos de la Carrera ITIV.</p>
+                      <h3 className="text-2xl font-bold text-slate-900">Guía de Procesos Académicos</h3>
+                      <p className="mt-2 text-sm text-slate-500 max-w-xl">Conoce los pasos detallados para realizar tus trámites correctamente dentro de la plataforma y la universidad.</p>
                     </div>
                   </div>
-                  <Link
-                    to="/asistente-virtual"
-                    className="flex h-12 items-center justify-center rounded-xl bg-slate-900 px-6 text-sm font-bold text-white transition hover:bg-slate-800"
-                  >
-                    Más información
-                  </Link>
                 </div>
-                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
+                <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-4">
                   {[
                     "Retiro Voluntario",
                     "Homologación",
@@ -155,7 +140,7 @@ function Home() {
                     "Exámenes Atrasados",
                     "Recalificación"
                   ].map((tag) => (
-                    <span key={tag} className="rounded-lg bg-slate-50 py-2.5 px-2 text-center text-[11px] font-bold text-slate-600 border border-slate-100">
+                    <span key={tag} className="flex items-center justify-center rounded-xl bg-slate-50 py-3 px-4 text-center text-[11px] font-bold text-slate-600 border border-slate-100 transition-colors hover:bg-white hover:border-sky-200 hover:text-sky-600">
                       {tag}
                     </span>
                   ))}
@@ -174,7 +159,7 @@ function Home() {
               <div className="flex items-center gap-3 rounded-xl bg-white p-5 border border-slate-200 shadow-sm">
                 <BookOpen className="h-5 w-5 text-sky-600" />
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Documentos</p>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Anexos y Formatos</p>
                   <p className="text-sm font-bold text-slate-700">8 Formatos Oficiales</p>
                 </div>
               </div>
@@ -182,7 +167,7 @@ function Home() {
                 <LayoutDashboard className="h-5 w-5 text-sky-600" />
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Ciclo Académico</p>
-                  <p className="text-sm font-bold text-slate-700">2025 - 2026</p>
+                  <p className="text-sm font-bold text-slate-700">2026</p>
                 </div>
               </div>
             </div>

@@ -57,16 +57,11 @@ function PublicFooter() {
           <section className="space-y-6">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-sky-400">
-                Carrera ITIV
+                Carrera Tecnologías de la Información en Línea 
               </h3>
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
-            <p className="text-[15px] leading-relaxed text-sky-100/60">
-              Misión: Formar académicos, profesionales e investigadores de excelencia, creativos, humanistas, con capacidad de liderazgo, pensamiento crítico y alta conciencia ciudadana; generar, aplicar y difundir el conocimiento y, proporcionar e implementar alternativas de solución a los problemas del país, acordes con el plan Nacional de Desarrollo.
-            </p>
-            <p className="text-[15px] leading-relaxed text-sky-100/60">
-              Visión: Líder en la gestión del conocimiento y de la tecnología en el Sistema Nacional de Educación Superior, con prestigio Internacional y referente de práctica de valores éticos, cívicos y de servicio a la sociedad.
-            </p>
+           
           </section>
 
           {/* COL 2: ACCESOS RÁPIDOS */}
