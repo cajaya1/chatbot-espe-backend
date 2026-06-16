@@ -25,16 +25,10 @@ function Home() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <button
-              onClick={openChat}
-              className="flex h-12 items-center justify-center rounded-xl bg-sky-600 px-8 text-sm font-bold text-white shadow-lg transition hover:bg-sky-500 hover:scale-105 active:scale-95"
-            >
-              Consultar Asistente
-            </button>
 
             <Link
               to="/formatos-anexos"
-              className="flex h-12 items-center justify-center rounded-xl bg-white/10 px-8 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20 active:scale-95 border border-white/20"
+              className="flex h-12 items-center justify-center rounded-xl bg-sky-600 px-8 text-sm font-bold text-white shadow-lg transition hover:bg-sky-500 hover:scale-105 active:scale-95"
             >
               Anexos
             </Link>
