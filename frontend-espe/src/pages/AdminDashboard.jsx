@@ -156,7 +156,7 @@ function AdminDashboard() {
   ]
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       <div className="max-w-4xl px-2">
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           Información
@@ -168,7 +168,7 @@ function AdminDashboard() {
 
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 space-y-8">
         {/* Métricas */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           {adminMetrics.map((metric) => {
             const Icon = metric.icon
 
@@ -191,7 +191,7 @@ function AdminDashboard() {
         </div>
 
         {/* Datos de contacto del sitio público */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <CampoConfigEditable
             icon={Mail}
             label="Correo de atención al estudiante"

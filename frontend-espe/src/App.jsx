@@ -1,9 +1,10 @@
 import { Toaster } from 'react-hot-toast'
 import AppRoutes from './routes/AppRoutes'
+import { ChatProvider } from './context/ChatContext'
 
 function App() {
   return (
-    <>
+    <ChatProvider>
       <Toaster 
         position="top-right"
         toastOptions={{
@@ -33,7 +34,7 @@ function App() {
         }}
       />
       <AppRoutes />
-    </>
+    </ChatProvider>
   )
 }
 

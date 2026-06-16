@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import PublicLayout from '../layouts/PublicLayout'
 import AdminLayout from '../layouts/AdminLayout'
 import Home from '../pages/Home'
-import Chatbot from '../pages/Chatbot'
 import Processes from '../pages/Processes'
 import Formats from '../pages/Formats'
 import Information from '../pages/Information'
@@ -45,7 +44,6 @@ function AppRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/procesos-academicos" element={<Processes />} />
           <Route path="/formatos-anexos" element={<Formats />} />
-          <Route path="/asistente-virtual" element={<Chatbot />} />
           <Route path="/informacion" element={<Information />} />
         </Route>
 

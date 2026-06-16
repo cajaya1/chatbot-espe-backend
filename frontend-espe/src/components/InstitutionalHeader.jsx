@@ -34,17 +34,21 @@ function InstitutionalHeader({ onMenuClick }) {
 
         {/* Lado Derecho: Usuario y Logo Secundario (TI) */}
         <div className="flex items-center gap-4">
-          <div className="hidden items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm sm:flex">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+          <Link
+            to="/admin/profile"
+            className="group hidden items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:border-sky-300 hover:bg-sky-50 active:scale-95 sm:flex"
+            aria-label="Ver perfil"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition-colors group-hover:bg-sky-100 group-hover:text-sky-800">
               <UserRound className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-xs font-bold text-slate-700 uppercase">{displayName}</p>
-              <p className="truncate text-[10px] text-slate-400">
-                {user?.role === 'admin' ? 'Administrador' : 'Usuario'}
+              <p className="truncate text-xs font-bold text-slate-700 uppercase transition-colors group-hover:text-sky-600">{displayName}</p>
+              <p className="truncate text-[10px] text-slate-400 font-medium">
+                Rol: {user?.role === 'admin' ? 'Administrador' : 'Usuario'}
               </p>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
             <img src={LogoIti} alt="Logo TI" className="h-10 w-auto object-contain" />
           </div>

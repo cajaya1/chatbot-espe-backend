@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Mail, PhoneCall, Send, MessageCircle, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useChat } from '../context/ChatContext'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
 import { configService } from '../services/api'
 
 function PublicFooter() {
+  const { openChat } = useChat()
   const currentYear = new Date().getFullYear()
   const [supportEmail, setSupportEmail] = useState(
     import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
@@ -57,16 +59,11 @@ function PublicFooter() {
           <section className="space-y-6">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-sky-400">
-                Carrera ITIV
+                Carrera Tecnologías de la Información en Línea 
               </h3>
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
-            <p className="text-[15px] leading-relaxed text-sky-100/60">
-              Misión: Formar académicos, profesionales e investigadores de excelencia, creativos, humanistas, con capacidad de liderazgo, pensamiento crítico y alta conciencia ciudadana; generar, aplicar y difundir el conocimiento y, proporcionar e implementar alternativas de solución a los problemas del país, acordes con el plan Nacional de Desarrollo.
-            </p>
-            <p className="text-[15px] leading-relaxed text-sky-100/60">
-              Visión: Líder en la gestión del conocimiento y de la tecnología en el Sistema Nacional de Educación Superior, con prestigio Internacional y referente de práctica de valores éticos, cívicos y de servicio a la sociedad.
-            </p>
+           
           </section>
 
           {/* COL 2: ACCESOS RÁPIDOS */}
@@ -82,7 +79,6 @@ function PublicFooter() {
                 { label: 'Inicio', to: '/' },
                 { label: 'Procesos Académicos', to: '/procesos-academicos' },
                 { label: 'Formatos y Anexos', to: '/formatos-anexos' },
-                { label: 'Bot TI en Línea', to: '/asistente-virtual' }
               ].map((link) => (
                 <Link
                   key={link.label}
@@ -93,6 +89,13 @@ function PublicFooter() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={openChat}
+                className="group flex items-center gap-2 text-[15px] text-sky-100/70 transition-colors hover:text-white text-left"
+              >
+                <ChevronRight className="h-4 w-4 text-sky-500 transition-transform group-hover:translate-x-1" />
+                Asistente Virtual
+              </button>
             </nav>
           </section>
 
