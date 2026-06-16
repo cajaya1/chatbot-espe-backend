@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Mail, PhoneCall, Send, MessageCircle, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useChat } from '../context/ChatContext'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
 import { configService } from '../services/api'
 
 function PublicFooter() {
+  const { openChat } = useChat()
   const currentYear = new Date().getFullYear()
   const [supportEmail, setSupportEmail] = useState(
     import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
@@ -77,7 +79,6 @@ function PublicFooter() {
                 { label: 'Inicio', to: '/' },
                 { label: 'Procesos Académicos', to: '/procesos-academicos' },
                 { label: 'Formatos y Anexos', to: '/formatos-anexos' },
-                { label: 'Bot TI en Línea', to: '/asistente-virtual' }
               ].map((link) => (
                 <Link
                   key={link.label}
@@ -88,6 +89,13 @@ function PublicFooter() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={openChat}
+                className="group flex items-center gap-2 text-[15px] text-sky-100/70 transition-colors hover:text-white text-left"
+              >
+                <ChevronRight className="h-4 w-4 text-sky-500 transition-transform group-hover:translate-x-1" />
+                Asistente Virtual
+              </button>
             </nav>
           </section>
 

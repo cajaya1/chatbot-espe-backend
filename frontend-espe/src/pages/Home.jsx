@@ -1,8 +1,10 @@
 import { ArrowRight, GraduationCap, BookOpen, Target, Lightbulb, Bot, FileText, LayoutDashboard } from "lucide-react"
 import { Link } from "react-router-dom"
+import { useChat } from "../context/ChatContext"
 import FondoHome from "../assets/fondoHome.jpg"
 
 function Home() {
+  const { openChat } = useChat()
   return (
     <div className="flex flex-col bg-slate-100 min-h-screen w-full">
       {/* Hero Section */}
@@ -23,12 +25,12 @@ function Home() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link
-              to="/asistente-virtual"
+            <button
+              onClick={openChat}
               className="flex h-12 items-center justify-center rounded-xl bg-sky-600 px-8 text-sm font-bold text-white shadow-lg transition hover:bg-sky-500 hover:scale-105 active:scale-95"
             >
               Consultar Asistente
-            </Link>
+            </button>
 
             <Link
               to="/formatos-anexos"

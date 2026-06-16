@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import InstitutionalHeader from '../components/InstitutionalHeader'
+import FloatingChat from '../components/FloatingChat'
 import useAuth from '../hooks/useAuth'
 
 function AdminLayout() {
@@ -72,6 +73,7 @@ function AdminLayout() {
             <Outlet />
           </div>
         </main>
+        <FloatingChat />
       </div>
     </div>
   )

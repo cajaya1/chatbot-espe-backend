@@ -1,7 +1,9 @@
 import { ArrowRight, BookOpen, BookOpenCheck, BookOpenText, CircleDollarSign, FileText, GraduationCap, MessageSquareText, RefreshCcw, School, ShieldCheck, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useChat } from '../context/ChatContext'
 
 function Processes() {
+	const { openChat } = useChat()
 	const processes = [
 		{
 			title: 'Retiro voluntario',
@@ -72,10 +74,13 @@ function Processes() {
 									<p className="mt-2 text-sm leading-6 text-slate-600">{process.description}</p>
 								</div>
 							</div>
-							<Link to="/asistente-virtual" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800">
+							<button 
+								onClick={openChat}
+								className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800"
+							>
 								Consultar proceso
 								<ArrowRight className="h-4 w-4" />
-							</Link>
+							</button>
 						</article>
 					)
 				})}

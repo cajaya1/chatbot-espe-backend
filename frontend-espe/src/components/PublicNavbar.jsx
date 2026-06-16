@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { Menu, X, User } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
+import { useChat } from '../context/ChatContext'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
 
 const publicLinks = [
   { label: 'Inicio', path: '/' },
-  { label: 'Asistente', path: '/asistente-virtual' },
   { label: 'Formatos', path: '/formatos-anexos' },
 ]
 
 function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { openChat } = useChat()
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
@@ -41,6 +42,14 @@ function PublicNavbar() {
               {link.label}
             </NavLink>
           ))}
+          
+          <button
+            onClick={openChat}
+            className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            Asistente
+          </button>
+
           <Link
             to="/admin/login"
             className="ml-2 rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-sky-700"
@@ -84,6 +93,17 @@ function PublicNavbar() {
                 {link.label}
               </NavLink>
             ))}
+            
+            <button
+              onClick={() => {
+                setMobileOpen(false);
+                openChat();
+              }}
+              className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Asistente
+            </button>
+
             <Link
               to="/admin/login"
               onClick={() => setMobileOpen(false)}
