@@ -48,7 +48,10 @@ function AdminUsers() {
   }
 
   useEffect(() => {
-    fetchUsers()
+    const init = async () => {
+      await fetchUsers()
+    }
+    init()
   }, [])
 
   if (!currentUser || currentUser.role !== 'admin') {
@@ -230,7 +233,7 @@ function AdminUsers() {
             className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200" 
             onClick={() => setIsModalOpen(false)}
           />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">

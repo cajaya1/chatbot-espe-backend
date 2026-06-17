@@ -509,7 +509,7 @@ function AdminDocuments() {
             className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
             onClick={() => setIsModalOpen(false)}
           />
-          <div className="relative w-full max-w-3xl overflow-hidden rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">
@@ -734,7 +734,7 @@ function AdminDocuments() {
             className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
             onClick={() => setIsHistoryOpen(false)}
           />
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Historial de versiones</h3>
@@ -805,7 +805,7 @@ function AdminDocuments() {
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setIsDeleteConfirmOpen(false)}
           />
-          <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[2rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600">
                 <AlertTriangle className="h-8 w-8" />
@@ -842,7 +842,7 @@ function AdminDocuments() {
             className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
             onClick={() => setIsCategoriaModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Gestión de Categorías</h3>
