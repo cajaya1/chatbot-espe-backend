@@ -1,6 +1,6 @@
 import { Send, MessageCircleMore, Trash2, Loader, X } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
-import { chatService, procesoService } from '../services/api'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { chatService, procesoService, categoriaService } from '../services/api'
 import toast from 'react-hot-toast'
 import { downloadAnexo } from '../utils/anexos'
 import { useChat } from '../context/ChatContext'
@@ -9,6 +9,9 @@ import ChatbotLogo from '../assets/chatbot-logo.jpeg'
 // Nombre del asistente. Centralizado aquí porque aún no está definido de forma
 // final: cambiar este valor actualiza el saludo, el encabezado y la burbuja.
 const BOT_NAME = 'Eva'
+
+// Mensaje genérico que muestra el bot tras elegir una categoría.
+const CATEGORY_PROMPT = 'Bien, ¿qué proceso de esta categoría necesitas?'
 
 // Función auxiliar para parsear links de Markdown (reutilizada de Chatbot.jsx)
 const renderFuente = (fuenteString) => {
@@ -48,12 +51,13 @@ function FloatingChat() {
     {
       role: 'assistant',
       content: welcomeMessage,
-      showOptions: true
+      optionsType: 'categories'
     }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [procesos, setProcesos] = useState([])
+  const [categorias, setCategorias] = useState([])
   const [procesosLoading, setProcesosLoading] = useState(true)
   const [selectedProceso, setSelectedProceso] = useState(null)
   const [showBubble, setShowBubble] = useState(true)
@@ -69,18 +73,22 @@ function FloatingChat() {
   }, [messages, loading, isChatOpen])
 
   useEffect(() => {
-    const fetchProcesos = async () => {
+    const cargar = async () => {
       setProcesosLoading(true)
       try {
-        const data = await procesoService.listProcesos()
-        setProcesos(data)
+        const [procData, catData] = await Promise.all([
+          procesoService.listProcesos(),
+          categoriaService.listar().catch(() => []),
+        ])
+        setProcesos(procData)
+        setCategorias(catData)
       } catch (error) {
-        console.error('Error fetching procesos:', error)
+        console.error('Error cargando datos del chat:', error)
       } finally {
         setProcesosLoading(false)
       }
     }
-    fetchProcesos()
+    cargar()
   }, [])
 
   const handleSend = async () => {
@@ -102,7 +110,7 @@ function FloatingChat() {
         role: 'assistant',
         content: response.respuesta,
         fuentes: response.fuentes,
-        showOptions: response.sugerir_procesos
+        optionsType: response.sugerir_procesos ? 'categories' : undefined
       }])
     } catch {
       setMessages(prev => [...prev, {
@@ -115,9 +123,47 @@ function FloatingChat() {
   }
 
   const handleClearChat = () => {
-    setMessages([{ role: 'assistant', content: welcomeMessage, showOptions: true }])
+    setMessages([{ role: 'assistant', content: welcomeMessage, optionsType: 'categories' }])
     setSelectedProceso(null)
     toast.success('Conversación reiniciada')
+  }
+
+  // Categorías a mostrar: las del backend + un grupo "Otros procesos" para los
+  // procesos sin categoría asignada (defensivo). Solo presentación.
+  const categoriasConProcesos = useMemo(() => {
+    const lista = categorias.map((c) => ({
+      id: c.id,
+      label: c.nombre,
+      procesos: procesos.filter((p) => p.categoria_id === c.id),
+    }))
+    const idsValidos = new Set(categorias.map((c) => c.id))
+    const otros = procesos.filter((p) => !p.categoria_id || !idsValidos.has(p.categoria_id))
+    if (otros.length > 0) {
+      lista.push({ id: '__otros__', label: 'Otros procesos', procesos: otros })
+    }
+    return lista
+  }, [categorias, procesos])
+
+  const procesosDeCategoria = (categoryId) => {
+    const cat = categoriasConProcesos.find((c) => c.id === categoryId)
+    return cat ? cat.procesos : []
+  }
+
+  const handleSelectCategoria = (cat) => {
+    setMessages((prev) => [...prev, {
+      role: 'assistant',
+      content: CATEGORY_PROMPT,
+      optionsType: 'procesos',
+      categoryId: cat.id,
+    }])
+  }
+
+  const handleShowCategorias = () => {
+    setMessages((prev) => [...prev, {
+      role: 'assistant',
+      content: '¿Sobre qué tema necesitas ayuda?',
+      optionsType: 'categories',
+    }])
   }
 
   const handleSelectProceso = (proceso) => {
@@ -188,24 +234,47 @@ function FloatingChat() {
                   }`}>
                     <p className="whitespace-pre-line leading-relaxed">{m.content}</p>
 
-                    {m.showOptions && (
+                    {m.optionsType === 'categories' && (
                       <div className="mt-3 grid gap-1">
                         <p className={`text-[10px] font-bold uppercase mb-1 ${m.role === 'user' ? 'text-sky-200' : 'text-slate-400'}`}>
-                          Selecciona un proceso:
+                          Selecciona una categoría:
                         </p>
                         {procesosLoading ? (
                           <Loader className="h-3 w-3 animate-spin text-sky-600" />
                         ) : (
-                          procesos.map((p) => (
+                          categoriasConProcesos.map((cat) => (
                             <button
-                              key={p.codigo_proceso}
-                              onClick={() => handleSelectProceso(p)}
+                              key={cat.id}
+                              onClick={() => handleSelectCategoria(cat)}
                               className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 active:scale-95"
                             >
-                              {p.titulo}
+                              {cat.label}
                             </button>
                           ))
                         )}
+                      </div>
+                    )}
+
+                    {m.optionsType === 'procesos' && (
+                      <div className="mt-3 grid gap-1">
+                        <p className={`text-[10px] font-bold uppercase mb-1 ${m.role === 'user' ? 'text-sky-200' : 'text-slate-400'}`}>
+                          Selecciona un proceso:
+                        </p>
+                        {procesosDeCategoria(m.categoryId).map((p) => (
+                          <button
+                            key={p.codigo_proceso}
+                            onClick={() => handleSelectProceso(p)}
+                            className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold text-slate-600 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 active:scale-95"
+                          >
+                            {p.titulo}
+                          </button>
+                        ))}
+                        <button
+                          onClick={handleShowCategorias}
+                          className="mt-1 w-full rounded-xl px-3 py-1.5 text-left text-[11px] font-semibold text-slate-400 transition-colors hover:text-sky-600"
+                        >
+                          ← Volver a categorías
+                        </button>
                       </div>
                     )}
 

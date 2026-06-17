@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.models.proceso_academico import ProcesoAcademico
+from app.models.categoria import Categoria, ProcesoCategoria
 from app.models.calendario_academico import PeriodoAcademico, ActividadCalendario
 from app.schema.user_schema import UserCreate
 from app.services.chroma_service import upsert_contexto_proceso
@@ -242,6 +243,39 @@ def seed_procesos(db: Session) -> None:
                 titulo=data["titulo"],
                 flujo_pasos=data["flujo_pasos"],
             )
+
+
+def seed_categorias(db: Session) -> None:
+    """Crea las categorías de presentación por defecto y mapea los 8 procesos.
+
+    Idempotente: solo crea la categoría si no existe y solo asigna el proceso si
+    aún no tiene categoría, por lo que NO sobrescribe asignaciones hechas desde
+    el admin. Son datos nuevos; no tocan la base vectorial ni Mistral.
+    """
+    categorias_default = [
+        ("Retiros", ["PROC-01", "PROC-02"]),
+        ("Calificaciones de Evaluaciones/Trabajos", ["PROC-07", "PROC-08"]),
+        ("Reingresos/Cambios de Carrera", ["PROC-04", "PROC-06"]),
+        ("Legalización/Homologación", ["PROC-05", "PROC-03"]),
+    ]
+
+    for orden, (nombre, codigos) in enumerate(categorias_default, start=1):
+        categoria = db.query(Categoria).filter(Categoria.nombre == nombre).first()
+        if not categoria:
+            categoria = Categoria(nombre=nombre, orden=orden)
+            db.add(categoria)
+            db.flush()  # asegura categoria.id disponible
+
+        for codigo in codigos:
+            existente = (
+                db.query(ProcesoCategoria)
+                .filter(ProcesoCategoria.codigo_proceso == codigo)
+                .first()
+            )
+            if not existente:
+                db.add(ProcesoCategoria(codigo_proceso=codigo, categoria_id=categoria.id))
+
+    db.commit()
 
 
 def seed_calendario(db: Session) -> None:

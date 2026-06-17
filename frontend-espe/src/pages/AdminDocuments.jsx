@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   BadgeCheck,
+  Check,
   CheckCircle2,
   Download,
   Eye,
   FileText,
   Filter,
+  FolderTree,
   Hash,
   Layers,
   Paperclip,
+  Pencil,
   Plus,
   RotateCcw,
   Search,
@@ -17,7 +20,7 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { procesoService } from '../services/api'
+import { procesoService, categoriaService } from '../services/api'
 import useAuth from '../hooks/useAuth'
 import { downloadAnexo, getAnexoDisplayName } from '../utils/anexos'
 
@@ -28,6 +31,7 @@ const emptyForm = {
   flujo_pasos: [''],
   contexto_legal: '',
   ruta_anexo: '',
+  categoria_id: '',
 }
 
 function AdminDocuments() {
@@ -47,6 +51,11 @@ function AdminDocuments() {
   const [procesoToDelete, setProcesoToDelete] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'active', 'inactive'
   const [anexoFile, setAnexoFile] = useState(null)
+  const [categorias, setCategorias] = useState([])
+  const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false)
+  const [nuevaCategoria, setNuevaCategoria] = useState('')
+  const [categoriaEditId, setCategoriaEditId] = useState(null)
+  const [categoriaEditNombre, setCategoriaEditNombre] = useState('')
 
 
   const fetchProcesos = async () => {
@@ -62,8 +71,21 @@ function AdminDocuments() {
     }
   }
 
+  const fetchCategorias = async () => {
+    try {
+      const data = await categoriaService.listar()
+      setCategorias(data)
+    } catch {
+      // Silencioso: el select de categorías quedará vacío si falla.
+    }
+  }
+
   useEffect(() => {
-    fetchProcesos()
+    const init = async () => {
+      await fetchProcesos()
+      await fetchCategorias()
+    }
+    init()
   }, [])
 
   const filteredProcesos = useMemo(() => {
@@ -95,6 +117,7 @@ function AdminDocuments() {
         flujo_pasos: proceso.flujo_pasos?.length ? proceso.flujo_pasos : [''],
         contexto_legal: proceso.contexto_legal,
         ruta_anexo: proceso.ruta_anexo || '',
+        categoria_id: proceso.categoria_id ?? '',
       })
     } else {
       // Generar código según el número correlativo (PROC-0X)
@@ -172,6 +195,11 @@ function AdminDocuments() {
       }
     }
 
+    if (!formData.categoria_id) {
+      toast.error('Selecciona una categoría para el proceso.')
+      return
+    }
+
     let rutaAnexo = formData.ruta_anexo?.trim() || null
     if (anexoFile) {
       try {
@@ -190,6 +218,7 @@ function AdminDocuments() {
       flujo_pasos: pasos,
       contexto_legal: contexto,
       ruta_anexo: rutaAnexo,
+      categoria_id: formData.categoria_id ? Number(formData.categoria_id) : null,
     }
 
     const savePromise = modalMode === 'create'
@@ -198,7 +227,7 @@ function AdminDocuments() {
 
     toast.promise(savePromise, {
       loading: modalMode === 'create' ? 'Creando nuevo proceso...' : 'Actualizando y versionando...',
-      success: (data) => {
+      success: () => {
         fetchProcesos() // Actualiza la lista de procesos (recarga la data)
         setIsModalOpen(false) // Cierra el modal automáticamente
         return modalMode === 'create'
@@ -279,6 +308,44 @@ function AdminDocuments() {
     })
   }
 
+  const crearCategoria = async () => {
+    const nombre = nuevaCategoria.trim()
+    if (!nombre) return
+    try {
+      await categoriaService.crear({ nombre })
+      setNuevaCategoria('')
+      fetchCategorias()
+      toast.success('Categoría creada')
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'No se pudo crear la categoría')
+    }
+  }
+
+  const guardarEdicionCategoria = async (id) => {
+    const nombre = categoriaEditNombre.trim()
+    if (!nombre) return
+    try {
+      await categoriaService.actualizar(id, { nombre })
+      setCategoriaEditId(null)
+      setCategoriaEditNombre('')
+      fetchCategorias()
+      toast.success('Categoría actualizada')
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'No se pudo actualizar la categoría')
+    }
+  }
+
+  const eliminarCategoria = async (categoria) => {
+    try {
+      await categoriaService.eliminar(categoria.id)
+      fetchCategorias()
+      fetchProcesos() // los procesos de esa categoría quedan sin categoría
+      toast.success(`Categoría "${categoria.nombre}" eliminada`)
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'No se pudo eliminar la categoría')
+    }
+  }
+
   return (
     <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
@@ -286,13 +353,24 @@ function AdminDocuments() {
           <h2 className="text-2xl font-bold text-slate-900">Gestión de Procesos Académicos</h2>
           <p className="mt-1 text-sm text-slate-500">Crea, versiona y publica los procesos vigentes para el chatbot.</p>
         </div>
-        <button
-          onClick={() => openModal('create')}
-          className="flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 active:scale-95"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo proceso</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => setIsCategoriaModalOpen(true)}
+              className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:border-sky-300 hover:text-sky-700 active:scale-95"
+            >
+              <FolderTree className="h-5 w-5" />
+              <span>Categorías</span>
+            </button>
+          )}
+          <button
+            onClick={() => openModal('create')}
+            className="flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 active:scale-95"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo proceso</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
@@ -376,6 +454,10 @@ function AdminDocuments() {
                   <span className="flex items-center gap-1.5">
                     <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
                     {item.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <FolderTree className="h-3.5 w-3.5 text-violet-400" />
+                    {categorias.find((c) => c.id === item.categoria_id)?.nombre || 'Sin categoría'}
                   </span>
                 </div>
               </div>
@@ -470,6 +552,22 @@ function AdminDocuments() {
                     placeholder="Generando código..."
                   />
                   <p className="mt-1 text-[10px] text-slate-400 italic">Identificador único generado automáticamente.</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-slate-700">Categoría</label>
+                  <select
+                    value={String(formData.categoria_id ?? '')}
+                    disabled={modalMode === 'view'}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, categoria_id: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm outline-none focus:border-sky-500 focus:bg-white disabled:opacity-70"
+                  >
+                    <option value="">Selecciona una categoría…</option>
+                    {categorias.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[10px] text-slate-400 italic">Agrupa el proceso en el menú del chatbot (no afecta la IA).</p>
                 </div>
 
                 <div>
@@ -734,6 +832,112 @@ function AdminDocuments() {
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isCategoriaModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            onClick={() => setIsCategoriaModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/20 bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Gestión de Categorías</h3>
+                <p className="text-xs font-medium text-slate-500">Agrupan los procesos en el menú del chatbot. No afectan la IA.</p>
+              </div>
+              <button
+                onClick={() => setIsCategoriaModalOpen(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Crear nueva categoría */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nuevaCategoria}
+                onChange={(e) => setNuevaCategoria(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && crearCategoria()}
+                placeholder="Nueva categoría…"
+                className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-sky-500 focus:bg-white"
+              />
+              <button
+                onClick={crearCategoria}
+                className="flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                Agregar
+              </button>
+            </div>
+
+            {/* Lista de categorías */}
+            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+              {categorias.length > 0 ? (
+                categorias.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2.5"
+                  >
+                    {categoriaEditId === c.id ? (
+                      <>
+                        <input
+                          type="text"
+                          value={categoriaEditNombre}
+                          onChange={(e) => setCategoriaEditNombre(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && guardarEdicionCategoria(c.id)}
+                          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
+                        />
+                        <button
+                          onClick={() => guardarEdicionCategoria(c.id)}
+                          title="Guardar"
+                          className="rounded-lg border border-emerald-100 bg-white p-2 text-emerald-600 transition hover:bg-emerald-50"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => { setCategoriaEditId(null); setCategoriaEditNombre('') }}
+                          title="Cancelar"
+                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 truncate text-sm font-semibold text-slate-700">{c.nombre}</span>
+                        <button
+                          onClick={() => { setCategoriaEditId(c.id); setCategoriaEditNombre(c.nombre) }}
+                          title="Editar"
+                          className="rounded-lg border border-slate-100 bg-white p-2 text-slate-500 transition hover:border-sky-200 hover:text-sky-700"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => eliminarCategoria(c)}
+                          title="Eliminar"
+                          className="rounded-lg border border-red-50 bg-white p-2 text-red-300 transition hover:border-red-200 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-center text-xs text-slate-400">
+                  No hay categorías. Crea la primera arriba.
+                </div>
+              )}
+            </div>
+
+            <p className="mt-4 text-[11px] text-slate-400">
+              Al eliminar una categoría, sus procesos quedan sin categoría (aparecen en “Otros procesos” en el chat).
+            </p>
           </div>
         </div>
       )}

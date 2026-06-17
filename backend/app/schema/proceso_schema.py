@@ -9,6 +9,8 @@ class ProcesoBase(BaseModel):
     flujo_pasos: List[str]
     contexto_legal: str
     ruta_anexo: Optional[str] = None
+    # Categoría de presentación (solo UI del chat/admin); no afecta el RAG.
+    categoria_id: Optional[int] = None
 
 
 class ProcesoCreate(ProcesoBase):

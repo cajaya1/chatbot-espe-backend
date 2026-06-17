@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.proceso_academico import ProcesoAcademico
+from app.models.categoria import ProcesoCategoria
 from app.schema.proceso_schema import ProcesoCreate, ProcesoOut, ProcesoUpdate
 from app.services.chroma_service import upsert_contexto_proceso, eliminar_contexto_proceso
 from app.core.utils import generate_next_codigo_proceso
@@ -13,14 +14,41 @@ from app.core.utils import generate_next_codigo_proceso
 router = APIRouter(prefix="/api/procesos", tags=["procesos"])
 
 
+def _categoria_map(db: Session) -> dict:
+    """codigo_proceso -> categoria_id, para todos los procesos mapeados."""
+    return {r.codigo_proceso: r.categoria_id for r in db.query(ProcesoCategoria).all()}
+
+
+def _categoria_de(db: Session, codigo: str):
+    row = db.query(ProcesoCategoria).filter(ProcesoCategoria.codigo_proceso == codigo).first()
+    return row.categoria_id if row else None
+
+
+def _set_categoria(db: Session, codigo: str, categoria_id) -> None:
+    """Asigna (o quita, si es None) la categoría de un proceso por su código."""
+    row = db.query(ProcesoCategoria).filter(ProcesoCategoria.codigo_proceso == codigo).first()
+    if categoria_id is None:
+        if row:
+            db.delete(row)
+        return
+    if row:
+        row.categoria_id = categoria_id
+    else:
+        db.add(ProcesoCategoria(codigo_proceso=codigo, categoria_id=categoria_id))
+
+
 @router.get("", response_model=List[ProcesoOut])
 def listar_procesos(db: Session = Depends(get_db)) -> List[ProcesoAcademico]:
-    return (
+    procesos = (
         db.query(ProcesoAcademico)
         .filter(ProcesoAcademico.es_actual.is_(True), ProcesoAcademico.activo.is_(True))
         .order_by(ProcesoAcademico.codigo_proceso.asc())
         .all()
     )
+    mapping = _categoria_map(db)
+    for p in procesos:
+        p.categoria_id = mapping.get(p.codigo_proceso)
+    return procesos
 
 
 @router.get("/{codigo}/historial", response_model=List[ProcesoOut])
@@ -33,6 +61,10 @@ def listar_historial(codigo: str, db: Session = Depends(get_db)) -> List[Proceso
     )
     if not historial:
         raise HTTPException(status_code=404, detail="No se encontraron versiones para este codigo.")
+
+    categoria_id = _categoria_de(db, codigo)
+    for h in historial:
+        h.categoria_id = categoria_id
 
     return historial
 
@@ -85,6 +117,10 @@ def crear_proceso(payload: ProcesoCreate, db: Session = Depends(get_db)) -> Proc
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No se pudo indexar el contexto en ChromaDB.",
         )
+
+    _set_categoria(db, codigo_final, payload.categoria_id)
+    db.commit()
+    proceso.categoria_id = payload.categoria_id
 
     return proceso
 
@@ -141,6 +177,10 @@ def actualizar_proceso(
             detail="No se pudo sincronizar el contexto en ChromaDB.",
         )
 
+    _set_categoria(db, codigo, payload.categoria_id)
+    db.commit()
+    nuevo.categoria_id = payload.categoria_id
+
     return nuevo
 
 
@@ -153,6 +193,9 @@ def eliminar_proceso(codigo: str, db: Session = Depends(get_db)):
 
     for p in procs:
         db.delete(p)
+
+    # Quitar también el mapeo de categoría de este proceso
+    db.query(ProcesoCategoria).filter(ProcesoCategoria.codigo_proceso == codigo).delete()
 
     db.commit()
 
@@ -215,7 +258,8 @@ def deshacer_ultima_version(codigo: str, db: Session = Depends(get_db)) -> Proce
             titulo=anterior.titulo,
             flujo_pasos=anterior.flujo_pasos,
         )
-        
+
+        anterior.categoria_id = _categoria_de(db, codigo)
         return anterior
     except Exception as e:
         db.rollback()
