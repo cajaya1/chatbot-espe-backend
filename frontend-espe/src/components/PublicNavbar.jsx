@@ -62,8 +62,8 @@ function PublicNavbar() {
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
 
-        <div className="hidden rounded-2xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm lg:flex">
-          <img src={LogoIti} alt="Logo TI en Línea" className="h-11 w-auto object-contain sm:h-12" />
+        <div className="hidden items-center rounded-2xl border border-slate-200 bg-white px-4 py-1.5 shadow-sm lg:flex">
+          <img src={LogoIti} alt="Logo TI en Línea" className="h-14 w-auto object-contain sm:h-16" />
         </div>
       </div>
 

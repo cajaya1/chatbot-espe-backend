@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from typing import Any
 
 import anyio
@@ -19,6 +18,7 @@ from app.routes.chat import (
     _construir_fuente_formateada,
     _extract_results,
     _invocar_llm,
+    clasificar_intencion,
 )
 from app.services.chroma_service import buscar_contexto_proceso
 
@@ -258,6 +258,53 @@ async def telegram_webhook(
             (p for p in procesos if p.codigo_proceso == sesion["codigo"]), None
         )
 
+    # ------------------------------------------------------------------
+    # Intenciones conversacionales (saludo / si / no / gracias).
+    # Se evalúan ANTES de interpretar el texto como selección, para que
+    # "no", "si", "gracias", etc. no se confundan con un nombre de proceso.
+    # ------------------------------------------------------------------
+    intencion = clasificar_intencion(text)
+    if intencion == "saludo":
+        if proceso_activo:
+            msg = (
+                f"Hola, estoy aqui para ayudarte con <b>{proceso_activo.titulo}</b>. "
+                "Escribe tu consulta."
+            )
+        else:
+            msg = (
+                "Hola, soy el <b>Asistente Academico ITIV - ESPE</b>.\n\n"
+                + _texto_lista_procesos(procesos)
+            )
+        await _send_message(chat_id, msg)
+        return {"ok": True}
+
+    if intencion == "afirmacion":
+        if proceso_activo:
+            msg = f"Perfecto. Escribe tu consulta especifica sobre <b>{proceso_activo.titulo}</b>."
+        else:
+            msg = (
+                "Perfecto. Selecciona el tramite sobre el que necesitas ayuda.\n\n"
+                + _texto_lista_procesos(procesos)
+            )
+        await _send_message(chat_id, msg)
+        return {"ok": True}
+
+    if intencion in ("negacion", "despedida"):
+        _sessions[chat_id] = {"codigo": None, "titulo": None}
+        if intencion == "negacion":
+            msg = (
+                "Entendido. Si deseas consultar otro tramite, seleccionalo a continuacion.\n\n"
+                + _texto_lista_procesos(procesos)
+            )
+        else:
+            msg = (
+                "De nada, ha sido un placer ayudarte. Si surge otra duda, "
+                "selecciona otro tramite para continuar.\n\n"
+                + _texto_lista_procesos(procesos)
+            )
+        await _send_message(chat_id, msg)
+        return {"ok": True}
+
     # Intentar interpretar el mensaje como selección de proceso
     if not proceso_activo or text.isdigit() or len(text) < 15:
         seleccionado = _intentar_seleccionar_proceso(text, procesos)
@@ -289,25 +336,6 @@ async def telegram_webhook(
     # ------------------------------------------------------------------
     # Pregunta libre sobre el proceso activo
     # ------------------------------------------------------------------
-    pregunta_limpia = re.sub(r"[^\w\s]", "", text.lower()).strip()
-    saludos = {"hola", "buenas", "saludos", "buenos dias", "buenas tardes", "buenas noches"}
-    despedidas = {"gracias", "muchas gracias", "ok", "entendido", "perfecto", "listo"}
-
-    if pregunta_limpia in saludos:
-        await _send_message(
-            chat_id,
-            f"Hola, estoy aqui para ayudarte con <b>{proceso_activo.titulo}</b>. "
-            "Escribe tu consulta.",
-        )
-        return {"ok": True}
-
-    if pregunta_limpia in despedidas:
-        await _send_message(
-            chat_id,
-            "De nada. Si tienes otra duda, usa /procesos para seleccionar un tramite.",
-        )
-        return {"ok": True}
-
     await _responder_pregunta(chat_id, text, proceso_activo, db)
     return {"ok": True}
 

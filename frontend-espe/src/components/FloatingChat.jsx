@@ -105,6 +105,10 @@ function FloatingChat() {
           codigo_proceso: response.codigo_proceso,
           titulo: response.titulo_proceso
         })
+      } else if (response.sugerir_procesos) {
+        // El bot vuelve a ofrecer el menú (p. ej. tras "no"/"gracias"): se libera
+        // el proceso para que el estudiante pueda elegir otro trámite.
+        setSelectedProceso(null)
       }
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -177,7 +181,7 @@ function FloatingChat() {
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
       {/* Ventana de Chat */}
       {isChatOpen && (
-        <div className="mb-4 flex h-[600px] w-[90vw] max-w-[400px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+        <div className="mb-4 flex h-[600px] max-h-[calc(100dvh-9rem)] w-[90vw] max-w-[400px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
           {/* Header */}
           <header className="flex items-center justify-between bg-sky-700 px-6 py-4 text-white">
             <div className="flex items-center gap-3">

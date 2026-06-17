@@ -24,6 +24,49 @@ router = APIRouter(tags=["chat"])
 _REGLAMENTO_NOMBRE = "Reglamento Interno de Régimen Académico y de Estudiantes de la Universidad de las Fuerzas Armadas"
 _REGLAMENTO_URL = "https://usgn.espe.edu.ec/wp-content/uploads/2024/07/OR-2024-059-RRA-CODIFICADO.pdf"
 
+# Conjuntos de intención conversacional. Se comparan contra el mensaje normalizado
+# (minúsculas, sin signos) para dar un flujo natural sin involucrar a Mistral ni
+# al RAG en expresiones como "si", "no" o "gracias".
+SALUDOS = {
+    "hola", "holaa", "buenas", "saludos", "buenos dias", "buenas tardes",
+    "buenas noches", "hey", "ola", "hola eva", "que tal",
+}
+AFIRMACIONES = {
+    "si", "sí", "claro", "dale", "sip", "sii", "sisi", "asi es", "correcto",
+    "afirmativo", "por supuesto", "obvio", "claro que si",
+}
+NEGACIONES = {
+    "no", "nop", "no gracias", "ninguna", "ninguno", "nada", "no por ahora",
+    "estoy bien", "ya no", "nada mas", "no mas", "es todo", "eso es todo",
+    "ya esta", "asi esta bien", "por ahora no",
+}
+DESPEDIDAS = {
+    "gracias", "muchas gracias", "te agradezco", "ok", "okay", "vale",
+    "perfecto", "listo", "chao", "adios", "hasta luego", "entendido",
+    "muy amable", "gracias eva",
+}
+
+
+def clasificar_intencion(pregunta: str) -> str | None:
+    """Clasifica un mensaje corto como saludo/afirmacion/negacion/despedida.
+
+    Devuelve None si no es una expresión conversacional reconocida (entonces se
+    procesa como una consulta normal). El orden evita que "no gracias" se trate
+    como despedida o que "no" se confunda con un nombre de proceso.
+    """
+    limpio = re.sub(r"[^\w\s]", "", (pregunta or "").lower()).strip()
+    if not limpio:
+        return None
+    if limpio in SALUDOS:
+        return "saludo"
+    if limpio in NEGACIONES:
+        return "negacion"
+    if limpio in AFIRMACIONES:
+        return "afirmacion"
+    if limpio in DESPEDIDAS:
+        return "despedida"
+    return None
+
 
 class ChatRequest(BaseModel):
     pregunta: str
@@ -142,35 +185,72 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatRespo
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
 
-    # --- INTERCEPTOR DE SALUDOS Y CORTESÍA ---
-    pregunta_limpia = re.sub(r'[^\w\s]', '', pregunta.lower()).strip()
-    saludos = {"hola", "buenas", "saludos", "buenos dias", "buenas tardes", "buenas noches", "holaa", "hey"}
-    despedidas = {"gracias", "muchas gracias", "te agradezco", "ok", "entendido", "vale", "perfecto", "listo"}
-    
-    if pregunta_limpia in saludos:
+    # --- INTERCEPTOR DE INTENCIONES CONVERSACIONALES ---
+    intencion = clasificar_intencion(pregunta)
+
+    if intencion == "saludo":
         # Consultamos a la BD los procesos reales disponibles
         procesos_bd = db.query(ProcesoAcademico).filter(ProcesoAcademico.es_actual.is_(True)).all()
         lista_procesos = "\n".join([f"- {p.titulo}" for p in procesos_bd])
-        
-        respuesta_saludo = (
-            "Hola, soy tu Asistente Académico Inteligente de la carrera ITIV de la ESPE. "
-            "Actualmente puedo ayudarte con información detallada sobre los siguientes procesos:\n\n"
-            f"{lista_procesos}\n\n"
-            "¿En cuál de ellos necesitas ayuda?"
-        )
-        
+
         return ChatResponse(
-            respuesta=respuesta_saludo,
+            respuesta=(
+                "Hola, soy tu Asistente Académico Inteligente de la carrera ITIV de la ESPE. "
+                "Actualmente puedo ayudarte con información detallada sobre los siguientes procesos:\n\n"
+                f"{lista_procesos}\n\n"
+                "¿En cuál de ellos necesitas ayuda?"
+            ),
             fuentes=[],
             fragmentos_debug=[],
-            sugerir_procesos=False # No enviamos sugerencias web para no duplicar el texto
+            sugerir_procesos=False,  # No duplicamos los botones web con la lista de texto
         )
-        
-    if pregunta_limpia in despedidas:
+
+    if intencion == "afirmacion":
+        # El usuario confirma que tiene una duda: lo invitamos a escribirla en
+        # lugar de volcar información del proceso.
+        titulo_actual = None
+        if codigo_seleccionado:
+            proc_sel = (
+                db.query(ProcesoAcademico)
+                .filter(
+                    ProcesoAcademico.codigo_proceso == codigo_seleccionado,
+                    ProcesoAcademico.es_actual.is_(True),
+                )
+                .first()
+            )
+            titulo_actual = proc_sel.titulo if proc_sel else None
+
+        if titulo_actual:
+            return ChatResponse(
+                respuesta=f"Perfecto. Cuéntame tu duda específica sobre {titulo_actual} y con gusto te ayudo.",
+                fuentes=[],
+                fragmentos_debug=[],
+                codigo_proceso=codigo_seleccionado,
+                titulo_proceso=titulo_actual,
+                sugerir_procesos=False,
+            )
+
         return ChatResponse(
-            respuesta="De nada. Ha sido un placer ayudarte. Si tienes alguna otra duda con tus trámites, estaré aquí para asistirte.",
+            respuesta="Perfecto. ¿Sobre qué trámite necesitas ayuda? Selecciona uno para continuar.",
             fuentes=[],
-            fragmentos_debug=[]
+            fragmentos_debug=[],
+            sugerir_procesos=True,
+        )
+
+    if intencion == "negacion":
+        return ChatResponse(
+            respuesta="Entendido. Si deseas, puedo ayudarte con otro trámite: selecciónalo o escribe su nombre. Si no, ¡que tengas un excelente día!",
+            fuentes=[],
+            fragmentos_debug=[],
+            sugerir_procesos=True,
+        )
+
+    if intencion == "despedida":
+        return ChatResponse(
+            respuesta="De nada, ha sido un placer ayudarte. Si surge otra duda con tus trámites, puedes elegir otro proceso cuando quieras. ¡Que te vaya muy bien!",
+            fuentes=[],
+            fragmentos_debug=[],
+            sugerir_procesos=True,
         )
 
     # --- PASO 1: DETERMINAR EL PROCESO ---
