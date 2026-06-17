@@ -1,16 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  BookOpenText,
   ChevronRight,
   CalendarDays,
-  FileText,
   LayoutDashboard,
   LogOut,
   ShieldCheck,
   Settings2,
-  Sparkles,
   Users,
-  UserRound,
   X,
 } from 'lucide-react'
 import useAuth from '../hooks/useAuth'
@@ -22,16 +18,9 @@ const navigationItems = [
   { label: 'Usuarios', path: '/admin/users', icon: Users, adminOnly: true },
 ]
 
-function Sidebar({ open = true, onClose, mobile = false }) {
+function Sidebar({ onClose, mobile = false }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const displayName = user?.full_name || user?.username || 'Usuario'
-  const avatar = displayName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
 
   const handleLogout = () => {
     logout()
@@ -39,20 +28,12 @@ function Sidebar({ open = true, onClose, mobile = false }) {
   }
 
   // Filtrar items basado en rol
-  const filteredNavigation = navigationItems.filter(item => 
+  const filteredNavigation = navigationItems.filter(item =>
     !item.adminOnly || user?.role === 'admin'
   )
 
   return (
-    <aside
-      className={`flex h-full flex-col border-r border-slate-800/80 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-950/40 ${
-        mobile
-          ? `fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ${
-              open ? 'translate-x-0' : '-translate-x-full'
-            }`
-          : 'w-80'
-      }`}
-    >
+    <aside className="flex h-full w-80 flex-col border-r border-slate-800/80 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-950/40">
       <div className="flex items-center justify-between gap-4 border-b border-slate-800/80 px-6 py-5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 ring-1 ring-sky-400/20">
@@ -116,31 +97,6 @@ function Sidebar({ open = true, onClose, mobile = false }) {
             )
           })}
         </nav>
-
-        {/* Usuario en el Sidebar */}
-        <div className="mt-auto pt-4 border-t border-slate-800/40">
-          <button 
-            onClick={() => navigate('/admin/profile')}
-            className="w-full text-left rounded-2xl bg-white/5 p-3 ring-1 ring-white/10 transition-all hover:bg-white/10 hover:ring-sky-500/30 group/user"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 overflow-hidden rounded-xl bg-sky-500/10 shadow-inner ring-1 ring-sky-500/20 group-hover/user:bg-sky-500/20">
-                <div className="flex h-full w-full items-center justify-center text-sky-400 font-black text-sm">
-                  {avatar || 'US'}
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-white uppercase tracking-tight group-hover/user:text-sky-400 transition-colors">
-                  {displayName}
-                </p>
-                <p className="truncate text-[10px] font-medium text-slate-400 uppercase">
-                  Rol: {user?.role === 'admin' ? 'Administrador' : 'Usuario'}
-                </p>
-              </div>
-              <UserRound className="h-4 w-4 text-slate-500 group-hover/user:text-sky-400 transition-colors" />
-            </div>
-          </button>
-        </div>
       </div>
 
       <div className="border-t border-slate-800/80 px-6 py-5">

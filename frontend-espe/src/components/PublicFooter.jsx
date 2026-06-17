@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Mail, PhoneCall, Send, MessageCircle, ChevronRight } from 'lucide-react'
+import { Mail, PhoneCall, Send, MessageCircle, ChevronRight, CalendarDays } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useChat } from '../context/ChatContext'
 import LogoEspe from '../assets/LogoEspe.png'
 import LogoIti from '../assets/LogoITI.png'
-import { configService } from '../services/api'
+import { configService, calendarService } from '../services/api'
 
 function PublicFooter() {
   const { openChat } = useChat()
@@ -13,6 +13,7 @@ function PublicFooter() {
     import.meta.env.VITE_SUPPORT_EMAIL || 'carrera_itiv@espe.edu.ec'
   )
   const [supportPhone, setSupportPhone] = useState('(02) 3989-400')
+  const [periodoActual, setPeriodoActual] = useState(null)
 
   useEffect(() => {
     configService.getCorreoSoporte()
@@ -20,6 +21,13 @@ function PublicFooter() {
       .catch(() => {})
     configService.getTelefonoSoporte()
       .then(data => setSupportPhone(data.telefono))
+      .catch(() => {})
+    // Período académico vigente, tomado dinámicamente de la base del calendario.
+    calendarService.listarPeriodos()
+      .then(periodos => {
+        const vigente = (periodos || []).find(p => p.es_actual) || (periodos || [])[0]
+        setPeriodoActual(vigente?.nombre || null)
+      })
       .catch(() => {})
   }, [])
 
@@ -59,11 +67,21 @@ function PublicFooter() {
           <section className="space-y-6">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-sky-400">
-                Carrera Tecnologías de la Información en Línea 
+                Carrera Tecnologías de la Información en Línea
               </h3>
               <div className="mt-2 h-1 w-8 rounded-full bg-sky-500" />
             </div>
-           
+
+            {/* Período académico vigente (dinámico) */}
+            <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-sky-400" />
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-sky-400/80">Período Académico</h4>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-white">
+                {periodoActual || 'Período vigente no disponible'}
+              </p>
+            </div>
           </section>
 
           {/* COL 2: ACCESOS RÁPIDOS */}

@@ -42,7 +42,7 @@ function CampoConfigEditable({ icon: Icon, label, descripcion, value, type, plac
         <Icon className="h-4 w-4 text-sky-600" />
         <span className="text-sm font-semibold">{label}</span>
       </div>
-      <p className="text-xs text-slate-500">{descripcion}</p>
+      {descripcion && <p className="text-xs text-slate-500">{descripcion}</p>}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <input
           type={type}
@@ -195,7 +195,6 @@ function AdminDashboard() {
           <CampoConfigEditable
             icon={Mail}
             label="Correo de atención al estudiante"
-            descripcion="Este correo se muestra en el footer del sitio público. Solo administradores pueden modificarlo."
             value={correo}
             type="email"
             placeholder="correo@espe.edu.ec"
@@ -205,7 +204,6 @@ function AdminDashboard() {
           <CampoConfigEditable
             icon={Phone}
             label="Teléfono de atención"
-            descripcion="Este número se muestra en el footer del sitio público. Solo administradores pueden modificarlo."
             value={telefono}
             type="tel"
             placeholder="(02) 3989-400"

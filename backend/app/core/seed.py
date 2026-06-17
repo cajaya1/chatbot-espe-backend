@@ -95,7 +95,7 @@ def seed_procesos(db: Session) -> None:
         },
         {
             "codigo_proceso": "PROC-04",
-            "titulo": "Cambio de sede, carrera o IES",
+            "titulo": "Cambio de sede, carrera o IES (Institución de Educación Superior)",
             "flujo_pasos": [
                 "Acreditar haber cursado y finalizado al menos un (1) período académico ordinario de la malla curricular en la carrera de origen para cambios internos o de sede, o al menos dos (2) períodos académicos para solicitudes provenientes de otras Instituciones de Educación Superior.",
                 "Cumplir con el puntaje mínimo de admisión de cohorte de la carrera receptora correspondiente al período académico en el que se solicita la movilidad.",
@@ -142,7 +142,7 @@ def seed_procesos(db: Session) -> None:
         },
         {
             "codigo_proceso": "PROC-07",
-            "titulo": "Entrega de evaluaciones fuera del plazo límite",
+            "titulo": "Entrega de evaluaciones/trabajos fuera del plazo límite",
             "flujo_pasos": [
                 "Presentar la solicitud debidamente sustentada ante el Director de Carrera, en el término de tres (3) días subsiguientes a la fecha en que se entregó o rindió el instrumento de evaluación.",
                 "El Director de Carrera analizará si el justificativo presentado se enmarca dentro de las causales oficiales de justificación de inasistencia establecidas en la normativa institucional.",

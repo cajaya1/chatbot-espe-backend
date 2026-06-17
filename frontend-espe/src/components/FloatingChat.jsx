@@ -1,9 +1,14 @@
-import { Bot, Send, Sparkles, MessageCircleMore, Trash2, Loader, X, Minus } from 'lucide-react'
+import { Send, MessageCircleMore, Trash2, Loader, X } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { chatService, procesoService } from '../services/api'
 import toast from 'react-hot-toast'
 import { downloadAnexo } from '../utils/anexos'
 import { useChat } from '../context/ChatContext'
+import ChatbotLogo from '../assets/chatbot-logo.jpeg'
+
+// Nombre del asistente. Centralizado aquí porque aún no está definido de forma
+// final: cambiar este valor actualiza el saludo, el encabezado y la burbuja.
+const BOT_NAME = 'Eva'
 
 // Función auxiliar para parsear links de Markdown (reutilizada de Chatbot.jsx)
 const renderFuente = (fuenteString) => {
@@ -37,8 +42,8 @@ const renderFuente = (fuenteString) => {
 
 function FloatingChat() {
   const { isChatOpen, toggleChat, closeChat } = useChat()
-  const welcomeMessage = 'Hola 👋 Soy Eva, tu asistente virtual académico. ¿En qué proceso puedo ayudarte hoy?'
-  
+  const welcomeMessage = `Hola 👋 Soy ${BOT_NAME}, tu asistente virtual académico. ¿En qué proceso puedo ayudarte hoy?`
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -51,6 +56,7 @@ function FloatingChat() {
   const [procesos, setProcesos] = useState([])
   const [procesosLoading, setProcesosLoading] = useState(true)
   const [selectedProceso, setSelectedProceso] = useState(null)
+  const [showBubble, setShowBubble] = useState(true)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -98,7 +104,7 @@ function FloatingChat() {
         fuentes: response.fuentes,
         showOptions: response.sugerir_procesos
       }])
-    } catch (error) {
+    } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Error al conectar con el servidor.'
@@ -130,25 +136,25 @@ function FloatingChat() {
           <header className="flex items-center justify-between bg-sky-700 px-6 py-4 text-white">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md">
-                  <Bot className="h-6 w-6" />
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white">
+                  <img src={ChatbotLogo} alt={BOT_NAME} className="h-full w-full object-cover" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sky-700 bg-green-500" />
               </div>
               <div>
-                <h3 className="text-sm font-bold">Eva - Asistente Virtual</h3>
+                <h3 className="text-sm font-bold">{BOT_NAME} - Asistente Virtual</h3>
                 <p className="text-[10px] opacity-80 uppercase tracking-wider font-medium">En línea</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={handleClearChat}
                 className=" rounded-lg p-2 hover:bg-white/10 transition-colors"
                 title="Limpiar chat"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-              <button 
+              <button
                 onClick={closeChat}
                 className="rounded-lg p-2 hover:bg-white/10 transition-colors"
               >
@@ -162,26 +168,26 @@ function FloatingChat() {
             {messages.map((m, idx) => (
               <div key={idx} className={`flex w-full items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 {/* Avatar del Bot o Usuario */}
-                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white shadow-sm ring-2 ring-white transition-all ${
-                  m.role === 'user' 
-                    ? 'bg-slate-800' 
-                    : 'bg-sky-700'
+                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-white shadow-sm ring-2 ring-white transition-all ${
+                  m.role === 'user'
+                    ? 'bg-slate-800'
+                    : 'bg-white'
                 }`}>
                   {m.role === 'user' ? (
                     <MessageCircleMore className="h-4 w-4" />
                   ) : (
-                    <Bot className="h-4 w-4" />
+                    <img src={ChatbotLogo} alt={BOT_NAME} className="h-full w-full object-cover" />
                   )}
                 </div>
 
                 <div className={`group relative max-w-[80%] space-y-2`}>
                   <div className={`rounded-2xl px-3 py-2 text-sm shadow-sm transition-all ${
-                    m.role === 'user' 
-                      ? 'bg-sky-700 text-white rounded-br-none' 
+                    m.role === 'user'
+                      ? 'bg-sky-700 text-white rounded-br-none'
                       : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
                   }`}>
                     <p className="whitespace-pre-line leading-relaxed">{m.content}</p>
-                    
+
                     {m.showOptions && (
                       <div className="mt-3 grid gap-1">
                         <p className={`text-[10px] font-bold uppercase mb-1 ${m.role === 'user' ? 'text-sky-200' : 'text-slate-400'}`}>
@@ -220,12 +226,12 @@ function FloatingChat() {
             ))}
             {loading && (
               <div className="flex w-full items-end gap-2 flex-row">
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sky-700 text-white shadow-sm ring-2 ring-white">
-                  <Bot className="h-5 w-5" />
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-white">
+                  <img src={ChatbotLogo} alt={BOT_NAME} className="h-full w-full object-cover" />
                 </div>
                 <div className="max-w-[75%] rounded-2xl bg-white border border-slate-100 px-4 py-3 text-sm text-slate-500 rounded-bl-none flex items-center gap-3 shadow-sm italic">
                   <Loader className="h-4 w-4 animate-spin text-sky-600" />
-                  Carlos está escribiendo...
+                  {BOT_NAME} está escribiendo...
                 </div>
               </div>
             )}
@@ -263,23 +269,41 @@ function FloatingChat() {
         </div>
       )}
 
-      {/* Botón Flotante (FAB) */}
-      <button
-        onClick={toggleChat}
-        className={`flex h-20 w-20 items-center justify-center rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${
-          isChatOpen ? 'bg-slate-800 rotate-90' : 'bg-sky-600'
-        }`}
-        aria-label="Abrir asistente virtual"
-      >
-        {isChatOpen ? (
-          <X className="h-10 w-10 text-white" />
-        ) : (
-          <div className="relative">
-            <Bot className="h-10 w-10 text-white" />
-            <div className="absolute -top-1 -right-1 h-4.5 w-4.5 rounded-full border-2 border-sky-600 bg-green-500" />
+      {/* Burbuja de notificación + Botón Flotante (FAB) */}
+      <div className="flex items-end gap-3">
+        {!isChatOpen && showBubble && (
+          <div className="relative mb-2 max-w-[230px] rounded-2xl rounded-br-md bg-white px-4 py-3 text-sm text-slate-700 shadow-2xl ring-1 ring-slate-100 animate-in fade-in slide-in-from-right-2 duration-300">
+            <button
+              type="button"
+              onClick={() => setShowBubble(false)}
+              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-white shadow-md transition hover:bg-slate-800"
+              aria-label="Cerrar notificación"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            <p className="leading-snug">
+              ¡Hola! Soy <span className="font-bold text-sky-700">{BOT_NAME}</span>. ¿Tienes algún proceso con el que necesites ayuda?
+            </p>
           </div>
         )}
-      </button>
+
+        <button
+          onClick={toggleChat}
+          className={`relative flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${
+            isChatOpen ? 'bg-slate-800' : 'bg-white ring-2 ring-sky-500/30'
+          }`}
+          aria-label="Abrir asistente virtual"
+        >
+          {isChatOpen ? (
+            <X className="h-10 w-10 text-white" />
+          ) : (
+            <>
+              <img src={ChatbotLogo} alt={BOT_NAME} className="h-full w-full object-cover" />
+              <span className="absolute right-1 top-1 h-4 w-4 rounded-full border-2 border-white bg-green-500" />
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }

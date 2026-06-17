@@ -65,3 +65,13 @@ select {
   background: rgba(2, 132, 199, 0.2);
   color: #0f172a;
 }
+
+/* Oculta la barra de desplazamiento manteniendo el scroll horizontal táctil/ratón */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE y Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari y Opera */
+}
