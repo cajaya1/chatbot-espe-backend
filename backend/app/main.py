@@ -18,10 +18,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.database import Base, SessionLocal, engine
-from app.core.seed import seed_procesos, seed_users, seed_calendario
+from app.core.seed import seed_procesos, seed_users, seed_calendario, seed_categorias
 from app.models import user as user_model  # noqa: F401
 from app.models import document as document_model  # noqa: F401
 from app.models import proceso_academico as proceso_academico_model  # noqa: F401
+from app.models import categoria as categoria_model  # noqa: F401
 from app.models import calendario_academico as calendario_academico_model  # noqa: F401
 from app.models import configuracion as configuracion_model  # noqa: F401
 from app.routes.documents import router as documents_router
@@ -29,6 +30,7 @@ from app.routes.chat import router as chat_router
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.procesos import router as procesos_router
+from app.routes.categorias import router as categorias_router
 from app.routes.calendarios import router as calendarios_router
 from app.routes.telegram import router as telegram_router
 from app.routes.config import router as config_router
@@ -96,6 +98,7 @@ async def lifespan(app: FastAPI):
     try:
         seed_users(db)
         seed_procesos(db)
+        seed_categorias(db)
         seed_calendario(db)
     except Exception as exc:
         print(f"Error en seed: {exc}")
@@ -140,6 +143,7 @@ app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(procesos_router)
+app.include_router(categorias_router)
 app.include_router(calendarios_router)
 app.include_router(telegram_router)
 app.include_router(config_router)

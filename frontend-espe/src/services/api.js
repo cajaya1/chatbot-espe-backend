@@ -132,6 +132,24 @@ export const calendarService = {
   },
 }
 
+export const categoriaService = {
+  async listar() {
+    const response = await api.get('/api/categorias')
+    return response.data
+  },
+  async crear(payload) {
+    const response = await api.post('/api/categorias', payload)
+    return response.data
+  },
+  async actualizar(id, payload) {
+    const response = await api.put(`/api/categorias/${id}`, payload)
+    return response.data
+  },
+  async eliminar(id) {
+    await api.delete(`/api/categorias/${id}`)
+  },
+}
+
 export const configService = {
   async getCorreoSoporte() {
     const response = await api.get('/api/config/correo_soporte')
